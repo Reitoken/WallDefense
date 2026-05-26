@@ -1,0 +1,16 @@
+Naming convension:
+
+BP_ Blueprint
+SM_ / SK_ Static / Skeletal Mesh
+M_ / MI_ Material / Material Instance
+T_ Texture
+NS_ Niagara System
+WBP_ Widget Blueprint
+DA_ Data Asset
+DT_ Data Table
+E_ Enum
+S_ Struct
+Curve_ Curve
+L_ Level
+IMC_ / IA_ Input Mapping Context / Action
+EntityConfig_ Mass Entity Config
