@@ -6,6 +6,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -205,6 +207,7 @@ void AWeapon::Fire()
 	const float SpeedOut = GetBulletSpeed() * (Ammo ? Ammo->SpeedMultiplier : 1.f);
 	const float RangeOut = GetMaxRange() * (Ammo ? Ammo->RangeMultiplier : 1.f);
 	const int32 PierceOut = GetMaxTargets() + (Ammo ? Ammo->PierceBonus : 0);
+	const float KnockbackOut = GetKnockback() + (Ammo ? Ammo->KnockbackForceBonus : 0.f);
 
 	UStaticMesh* BulletMeshOut = (Ammo && Ammo->BulletMesh) ? Ammo->BulletMesh.Get() : DefaultBulletMesh.Get();
 	const FLinearColor Tint = Ammo ? Ammo->Tint : FLinearColor::White;
@@ -214,6 +217,12 @@ void AWeapon::Fire()
 
 	AActor* InstigatorActor = GetOwner();
 	const int32 Shots = FMath::Max(1, BulletsPerShot);
+
+	if (FireSound)
+	{
+		const float Pitch = 1.f + FMath::FRandRange(-FirePitchVariance, FirePitchVariance);
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Origin, FireSoundVolume, Pitch);
+	}
 
 	for (int32 i = 0; i < Shots; ++i)
 	{
@@ -243,7 +252,7 @@ void AWeapon::Fire()
 		{
 			Bullet->SetBulletMesh(BulletMeshOut);
 			Bullet->SetBulletTint(Tint);
-			Bullet->ActivateBullet(Origin, Direction, SpeedOut, ActualDamage, RangeOut, PierceOut, InstigatorActor);
+			Bullet->ActivateBullet(Origin, Direction, SpeedOut, ActualDamage, RangeOut, PierceOut, KnockbackOut, InstigatorActor);
 		}
 	}
 

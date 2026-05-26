@@ -9,6 +9,7 @@ class USceneComponent;
 class UStaticMesh;
 class ABullet;
 class UBulletPool;
+class USoundBase;
 
 USTRUCT(BlueprintType)
 struct FAmmoTypeData
@@ -208,6 +209,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pool")
 	TObjectPtr<UStaticMesh> DefaultBulletMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio")
+	TObjectPtr<USoundBase> FireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float FireSoundVolume = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio", meta = (ClampMin = "0.0", ClampMax = "0.5"))
+	float FirePitchVariance = 0.05f;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Pool")
 	TObjectPtr<UBulletPool> BulletPool;

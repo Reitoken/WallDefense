@@ -10,7 +10,7 @@ public class WallDefense : ModuleRules
 
 		PublicIncludePaths.Add(ModuleDirectory);
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "EngineCameras" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "EngineCameras", "Niagara" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

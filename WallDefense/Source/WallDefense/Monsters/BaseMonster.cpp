@@ -1,0 +1,379 @@
+#include "BaseMonster.h"
+
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
+#include "Combat/HealthComponent.h"
+#include "Combat/MonsterMovementZone.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Sound/SoundBase.h"
+#include "Weapons/Bullet.h"
+
+ABaseMonster::ABaseMonster()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->bOrientRotationToMovement = true;
+		Move->RotationRate = FRotator(0.f, 540.f, 0.f);
+		Move->MaxWalkSpeed = MovementSpeed;
+	}
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+		Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+		Capsule->SetGenerateOverlapEvents(true);
+	}
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->bUseRVOAvoidance = false;
+	}
+
+	Health = CreateDefaultSubobject<UHealthComponent>(TEXT("Health"));
+	Health->MaxHealth = 50.f;
+	Health->Defense = 0.f;
+}
+
+void ABaseMonster::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!Controller)
+	{
+		SpawnDefaultController();
+	}
+	if (!Controller)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] No AI controller — monster won't move. Check AIControllerClass."), *GetName());
+	}
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->MaxWalkSpeed = MovementSpeed;
+	}
+
+	InitialSpawnLocation = GetActorLocation();
+
+	if (USkeletalMeshComponent* SkelMesh = GetMesh())
+	{
+		MeshBaseRelativeLocation = SkelMesh->GetRelativeLocation();
+
+		HitFlashMIDs.Reset();
+		const int32 NumMats = SkelMesh->GetNumMaterials();
+		for (int32 i = 0; i < NumMats; ++i)
+		{
+			if (UMaterialInstanceDynamic* MID = SkelMesh->CreateAndSetMaterialInstanceDynamic(i))
+			{
+				HitFlashMIDs.Add(MID);
+			}
+		}
+		UE_LOG(LogTemp, Log, TEXT("[%s] Hit-flash MIDs created on %d material slot(s)."), *GetName(), HitFlashMIDs.Num());
+	}
+
+	if (Health)
+	{
+		Health->OnDamageTaken.AddDynamic(this, &ABaseMonster::HandleDamageTaken);
+		Health->OnDied.AddDynamic(this, &ABaseMonster::HandleDied);
+	}
+}
+
+void ABaseMonster::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bDead)
+	{
+		UpdateHitReact(DeltaSeconds);
+		return;
+	}
+
+	TimeAlive += DeltaSeconds;
+	UpdateMovement(DeltaSeconds);
+	UpdateAttack(DeltaSeconds);
+	UpdateHitReact(DeltaSeconds);
+}
+
+void ABaseMonster::SetTarget(AActor* InTarget)
+{
+	CurrentTarget = InTarget;
+}
+
+void ABaseMonster::SetMovementZone(AMonsterMovementZone* InZone)
+{
+	MovementZone = InZone;
+}
+
+void ABaseMonster::UpdateMovement(float /*DeltaSeconds*/)
+{
+	if (!CurrentTarget.IsValid())
+	{
+		return;
+	}
+
+	const FVector SelfLoc = GetActorLocation();
+	const FVector TargetLoc = CurrentTarget->GetActorLocation();
+
+	FVector EffectiveTarget = TargetLoc;
+	switch (Pathing)
+	{
+	case EMonsterPathing::DirectToTarget:
+		break;
+	case EMonsterPathing::LaneAlongX:
+		EffectiveTarget.Y = InitialSpawnLocation.Y;
+		break;
+	case EMonsterPathing::LaneAlongY:
+		EffectiveTarget.X = InitialSpawnLocation.X;
+		break;
+	case EMonsterPathing::LaneFromSpawn:
+	{
+		const FVector S2T = TargetLoc - InitialSpawnLocation;
+		if (FMath::Abs(S2T.X) >= FMath::Abs(S2T.Y))
+		{
+			EffectiveTarget.Y = InitialSpawnLocation.Y;
+		}
+		else
+		{
+			EffectiveTarget.X = InitialSpawnLocation.X;
+		}
+		break;
+	}
+	}
+
+	const FVector Flat(EffectiveTarget.X - SelfLoc.X, EffectiveTarget.Y - SelfLoc.Y, 0.f);
+	const float DistToEffective = Flat.Size();
+	const float DistToActualTarget = FVector::Dist2D(SelfLoc, TargetLoc);
+
+	if (DistToActualTarget <= AttackRange || DistToEffective <= AttackRange)
+	{
+		return;
+	}
+
+	const FVector Direction = Flat.GetSafeNormal();
+	AddMovementInput(Direction, 1.f);
+
+	if (MovementPattern == EMonsterMovementPattern::Sinusoidal && SinusoidalLateralStrength > KINDA_SMALL_NUMBER)
+	{
+		const FVector Perp = FVector::CrossProduct(Direction, FVector::UpVector).GetSafeNormal();
+		const float Phase = TimeAlive * SinusoidalFrequency * 2.f * PI;
+		AddMovementInput(Perp, SinusoidalLateralStrength * FMath::Sin(Phase));
+	}
+
+	if (AMonsterMovementZone* Zone = MovementZone.Get())
+	{
+		if (!Zone->IsLocationInside(SelfLoc))
+		{
+			FVector Clamped = Zone->ClampToZone(SelfLoc);
+			Clamped.Z = SelfLoc.Z;
+			SetActorLocation(Clamped, false);
+		}
+	}
+}
+
+void ABaseMonster::UpdateAttack(float DeltaSeconds)
+{
+	TimeSinceLastAttack += DeltaSeconds;
+
+	if (!CurrentTarget.IsValid())
+	{
+		return;
+	}
+
+	const float Dist = FVector::Dist2D(GetActorLocation(), CurrentTarget->GetActorLocation());
+	if (Dist > AttackRange)
+	{
+		return;
+	}
+
+	if (TimeSinceLastAttack < AttackCooldown)
+	{
+		return;
+	}
+
+	TimeSinceLastAttack = 0.f;
+
+	if (AttackMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			AnimInstance->Montage_Play(AttackMontage);
+		}
+	}
+
+	if (AttackMode == EMonsterAttackMode::Melee)
+	{
+		DoMeleeAttack();
+	}
+	else
+	{
+		DoRangedAttack();
+	}
+}
+
+void ABaseMonster::DoMeleeAttack()
+{
+	if (!CurrentTarget.IsValid())
+	{
+		return;
+	}
+	UGameplayStatics::ApplyDamage(CurrentTarget.Get(), Strength, GetController(), this, nullptr);
+}
+
+void ABaseMonster::DoRangedAttack()
+{
+	if (!CurrentTarget.IsValid() || !BulletClass)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const FTransform Xform = GetActorTransform();
+	const FVector SpawnLoc = Xform.TransformPosition(BulletSpawnOffset);
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.Instigator = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ABullet* Bullet = World->SpawnActor<ABullet>(BulletClass, SpawnLoc, GetActorRotation(), Params);
+	if (!Bullet)
+	{
+		return;
+	}
+
+	Bullet->bDestroyOnDeactivate = true;
+	if (BulletMesh)
+	{
+		Bullet->SetBulletMesh(BulletMesh);
+	}
+
+	const FVector Dir = (CurrentTarget->GetActorLocation() - SpawnLoc).GetSafeNormal();
+	Bullet->ActivateBullet(SpawnLoc, Dir, BulletSpeed, Strength, BulletRange, 1, 0.f, this);
+}
+
+void ABaseMonster::UpdateHitReact(float DeltaSeconds)
+{
+	USkeletalMeshComponent* SkelMesh = GetMesh();
+	if (!SkelMesh)
+	{
+		return;
+	}
+
+	if (BlinkTimer > 0.f)
+	{
+		BlinkTimer -= DeltaSeconds;
+		const float Alpha = FMath::Clamp(BlinkTimer / FMath::Max(HitBlinkDuration, KINDA_SMALL_NUMBER), 0.f, 1.f);
+		const float FinalAlpha = (BlinkTimer <= 0.f) ? 0.f : Alpha;
+		for (UMaterialInstanceDynamic* MID : HitFlashMIDs)
+		{
+			if (MID)
+			{
+				MID->SetScalarParameterValue(TEXT("HitFlash"), FinalAlpha);
+				MID->SetVectorParameterValue(TEXT("HitColor"), HitBlinkColor);
+			}
+		}
+
+		if (BlinkTimer <= 0.f && HitFlashOverlayMaterial && SkelMesh)
+		{
+			SkelMesh->SetOverlayMaterial(nullptr);
+		}
+	}
+
+	if (ShakeTimer > 0.f)
+	{
+		ShakeTimer -= DeltaSeconds;
+		if (ShakeTimer > 0.f)
+		{
+			const FVector Jitter(
+				FMath::FRandRange(-HitShakeIntensity, HitShakeIntensity),
+				FMath::FRandRange(-HitShakeIntensity, HitShakeIntensity),
+				0.f);
+			SkelMesh->SetRelativeLocation(MeshBaseRelativeLocation + Jitter);
+		}
+		else
+		{
+			SkelMesh->SetRelativeLocation(MeshBaseRelativeLocation);
+		}
+	}
+}
+
+void ABaseMonster::HandleDamageTaken(float IncomingDamage, float ActualDamage, AActor* DamageInstigator)
+{
+	if (bDead || ActualDamage <= 0.f)
+	{
+		return;
+	}
+
+	BlinkTimer = HitBlinkDuration;
+	ShakeTimer = HitShakeDuration;
+
+	if (HitFlashOverlayMaterial && GetMesh())
+	{
+		GetMesh()->SetOverlayMaterial(HitFlashOverlayMaterial);
+	}
+
+	if (HitEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, HitEffect, GetActorLocation(), GetActorRotation());
+	}
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
+
+	OnHitReact(ActualDamage, DamageInstigator);
+}
+
+void ABaseMonster::OnHitReact_Implementation(float /*DamageDealt*/, AActor* /*DamageInstigator*/)
+{
+}
+
+void ABaseMonster::HandleDied(AActor* /*Killer*/)
+{
+	if (bDead)
+	{
+		return;
+	}
+	bDead = true;
+
+	if (DeathEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DeathEffect, GetActorLocation(), GetActorRotation());
+	}
+	if (DeathSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, DeathSound, GetActorLocation());
+	}
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->StopMovementImmediately();
+		Move->DisableMovement();
+	}
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	SetActorEnableCollision(false);
+	SetLifeSpan(DeathLifeSpan);
+}
