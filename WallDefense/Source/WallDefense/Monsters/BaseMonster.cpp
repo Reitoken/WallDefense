@@ -210,7 +210,18 @@ void ABaseMonster::UpdateAttack(float DeltaSeconds)
 	{
 		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
 		{
-			AnimInstance->Montage_Play(AttackMontage);
+			bIsAttacking = true;
+			const float MontageLen = AnimInstance->Montage_Play(AttackMontage);
+			if (MontageLen > 0.f)
+			{
+				FOnMontageEnded EndedDelegate;
+				EndedDelegate.BindLambda([this](UAnimMontage*, bool) { bIsAttacking = false; });
+				AnimInstance->Montage_SetEndDelegate(EndedDelegate, AttackMontage);
+			}
+			else
+			{
+				bIsAttacking = false;
+			}
 		}
 	}
 
@@ -340,6 +351,14 @@ void ABaseMonster::HandleDamageTaken(float IncomingDamage, float ActualDamage, A
 		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
 	}
 
+	if (HitReactMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			AnimInstance->Montage_Play(HitReactMontage);
+		}
+	}
+
 	OnHitReact(ActualDamage, DamageInstigator);
 }
 
@@ -354,6 +373,7 @@ void ABaseMonster::HandleDied(AActor* /*Killer*/)
 		return;
 	}
 	bDead = true;
+	bIsAttacking = false;
 
 	if (DeathEffect)
 	{
@@ -374,6 +394,24 @@ void ABaseMonster::HandleDied(AActor* /*Killer*/)
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
+	if (DeathMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			AnimInstance->Montage_Play(DeathMontage);
+		}
+	}
+
 	SetActorEnableCollision(false);
 	SetLifeSpan(DeathLifeSpan);
+}
+
+float ABaseMonster::GetSpeed() const
+{
+	return GetVelocity().Size2D();
+}
+
+bool ABaseMonster::IsMoving() const
+{
+	return GetSpeed() > IdleSpeedThreshold;
 }

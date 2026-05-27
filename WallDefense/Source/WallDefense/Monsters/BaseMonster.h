@@ -56,6 +56,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void SetMovementZone(AMonsterMovementZone* InZone);
 
+	/** Current planar speed (cm/s). Use as float input in your AnimBP. */
+	UFUNCTION(BlueprintPure, Category = "Monster|Animation")
+	float GetSpeed() const;
+
+	/** True if speed exceeds IdleSpeedThreshold. Use as bool transition in your AnimBP state machine. */
+	UFUNCTION(BlueprintPure, Category = "Monster|Animation")
+	bool IsMoving() const;
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Animation")
+	bool IsDead() const { return bDead; }
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Animation")
+	bool IsAttacking() const { return bIsAttacking; }
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Monster|HitReact")
 	void OnHitReact(float DamageDealt, AActor* DamageInstigator);
 	virtual void OnHitReact_Implementation(float DamageDealt, AActor* DamageInstigator);
@@ -145,6 +159,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation")
+	TObjectPtr<UAnimMontage> HitReactMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
+	/** Speed below which the monster is considered idle (cm/s). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation", meta = (ClampMin = "0.0"))
+	float IdleSpeedThreshold = 5.f;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -181,4 +205,5 @@ protected:
 	float BlinkTimer = 0.f;
 	float ShakeTimer = 0.f;
 	bool bDead = false;
+	bool bIsAttacking = false;
 };
