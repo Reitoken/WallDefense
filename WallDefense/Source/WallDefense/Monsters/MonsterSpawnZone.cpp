@@ -6,6 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Lanes/LaneGrid.h"
 #include "TimerManager.h"
 
 AMonsterSpawnZone::AMonsterSpawnZone()
@@ -38,6 +39,15 @@ void AMonsterSpawnZone::BeginPlay()
 		{
 			MovementZone = *It;
 			UE_LOG(LogTemp, Log, TEXT("[%s] Auto-bound MovementZone: %s"), *GetName(), *MovementZone->GetName());
+			break;
+		}
+	}
+	if (!LaneGrid)
+	{
+		for (TActorIterator<ALaneGrid> It(GetWorld()); It; ++It)
+		{
+			LaneGrid = *It;
+			UE_LOG(LogTemp, Log, TEXT("[%s] Auto-bound LaneGrid: %s"), *GetName(), *LaneGrid->GetName());
 			break;
 		}
 	}
@@ -141,12 +151,43 @@ ABaseMonster* AMonsterSpawnZone::SpawnOne(TSubclassOf<ABaseMonster> MonsterClass
 		return nullptr;
 	}
 
-	const FVector SpawnLoc = GetRandomSpawnLocation();
+	// Choose lane + spawn location.
+	int32 ChosenLane = INDEX_NONE;
+	FVector SpawnLoc;
+	FRotator SpawnRot = GetActorRotation();
+
+	if (LaneGrid)
+	{
+		const int32 NumLanes = LaneGrid->GetNumLanes();
+		ChosenLane = bRandomLane ? FMath::RandRange(0, NumLanes - 1) : FMath::Clamp(FixedLaneIndex, 0, NumLanes - 1);
+
+		// Spawn at the lane end farthest from the target so monsters travel down the lane toward it.
+		const FVector Forward = LaneGrid->GetLaneForwardVector();
+		const FVector LaneCenter = LaneGrid->GetLaneCenterWorld(ChosenLane);
+		const float HalfLen = LaneGrid->GetLaneLength() * 0.5f;
+
+		float TargetAlong = 0.f;
+		if (Target)
+		{
+			TargetAlong = FVector::DotProduct(Target->GetActorLocation() - LaneCenter, Forward);
+		}
+		// Far end = opposite sign of the target's along position.
+		const float SpawnAlong = (TargetAlong >= 0.f) ? -HalfLen : HalfLen;
+
+		SpawnLoc = LaneGrid->GetLanePointWorld(ChosenLane, SpawnAlong);
+		SpawnLoc.Z = GetActorLocation().Z;
+		// Face down the lane toward the target.
+		SpawnRot = ((TargetAlong >= 0.f) ? Forward : -Forward).Rotation();
+	}
+	else
+	{
+		SpawnLoc = GetRandomSpawnLocation();
+	}
 
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	ABaseMonster* Monster = World->SpawnActor<ABaseMonster>(MonsterClass, SpawnLoc, GetActorRotation(), Params);
+	ABaseMonster* Monster = World->SpawnActor<ABaseMonster>(MonsterClass, SpawnLoc, SpawnRot, Params);
 	if (!Monster)
 	{
 		return nullptr;
@@ -159,6 +200,10 @@ ABaseMonster* AMonsterSpawnZone::SpawnOne(TSubclassOf<ABaseMonster> MonsterClass
 	if (MovementZone)
 	{
 		Monster->SetMovementZone(MovementZone);
+	}
+	if (LaneGrid && ChosenLane != INDEX_NONE)
+	{
+		Monster->SetLane(LaneGrid, ChosenLane);
 	}
 
 	OnMonsterSpawned.Broadcast(Monster);

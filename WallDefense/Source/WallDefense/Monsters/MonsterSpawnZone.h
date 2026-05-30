@@ -7,6 +7,7 @@
 class UBoxComponent;
 class ABaseMonster;
 class AMonsterMovementZone;
+class ALaneGrid;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterSpawned, ABaseMonster*, Monster);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAllWavesComplete);
@@ -61,6 +62,18 @@ public:
 	/** Assign on the level instance (not the BP defaults). Left empty = auto-find the first AMonsterMovementZone in the world at BeginPlay. */
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Spawn|Wiring")
 	TObjectPtr<AMonsterMovementZone> MovementZone;
+
+	/** Lane system to spawn monsters onto (MMBN-style). Left empty = auto-find the first ALaneGrid at BeginPlay. If none exists, monsters use free pathing. */
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Spawn|Wiring")
+	TObjectPtr<ALaneGrid> LaneGrid;
+
+	/** How to choose the lane each spawned monster goes on. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn|Lane")
+	bool bRandomLane = true;
+
+	/** Used when bRandomLane is false: lane index assigned to every spawned monster. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn|Lane", meta = (ClampMin = "0", EditCondition = "!bRandomLane"))
+	int32 FixedLaneIndex = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn|Behavior")
 	bool bAutoStart = true;

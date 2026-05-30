@@ -4,6 +4,7 @@
 #include "Animation/AnimMontage.h"
 #include "Combat/HealthComponent.h"
 #include "Combat/MonsterMovementZone.h"
+#include "Lanes/LaneGrid.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -118,10 +119,33 @@ void ABaseMonster::SetMovementZone(AMonsterMovementZone* InZone)
 	MovementZone = InZone;
 }
 
-void ABaseMonster::UpdateMovement(float /*DeltaSeconds*/)
+void ABaseMonster::SetLane(ALaneGrid* InLaneGrid, int32 InLaneIndex)
+{
+	LaneGrid = InLaneGrid;
+	if (InLaneGrid)
+	{
+		LaneIndex = FMath::Clamp(InLaneIndex, 0, InLaneGrid->GetNumLanes() - 1);
+
+		// Snap onto the lane centerline, preserving current along-distance.
+		const FVector Forward = InLaneGrid->GetLaneForwardVector();
+		const FVector LaneCenter = InLaneGrid->GetLaneCenterWorld(LaneIndex);
+		const float Along = FVector::DotProduct(GetActorLocation() - LaneCenter, Forward);
+		const FVector Snap = InLaneGrid->GetLanePointWorld(LaneIndex, Along);
+		SetActorLocation(FVector(Snap.X, Snap.Y, GetActorLocation().Z));
+	}
+}
+
+void ABaseMonster::UpdateMovement(float DeltaSeconds)
 {
 	if (!CurrentTarget.IsValid())
 	{
+		return;
+	}
+
+	// When bound to a lane (MMBN-style), advance along the lane instead of free pathing.
+	if (LaneGrid.IsValid())
+	{
+		UpdateLaneMovement(DeltaSeconds);
 		return;
 	}
 
@@ -182,6 +206,51 @@ void ABaseMonster::UpdateMovement(float /*DeltaSeconds*/)
 			SetActorLocation(Clamped, false);
 		}
 	}
+}
+
+void ABaseMonster::UpdateLaneMovement(float /*DeltaSeconds*/)
+{
+	ALaneGrid* Grid = LaneGrid.Get();
+	if (!Grid || !CurrentTarget.IsValid())
+	{
+		return;
+	}
+
+	const FVector Forward = Grid->GetLaneForwardVector();
+	const FVector Right = Grid->GetLaneRightVector();
+	const FVector LaneCenter = Grid->GetLaneCenterWorld(LaneIndex);
+
+	const FVector SelfLoc = GetActorLocation();
+	const FVector TargetLoc = CurrentTarget->GetActorLocation();
+
+	// Project self and target onto the lane's forward axis.
+	const float SelfAlong = FVector::DotProduct(SelfLoc - LaneCenter, Forward);
+	const float TargetAlong = FVector::DotProduct(TargetLoc - LaneCenter, Forward);
+	const float AlongDelta = TargetAlong - SelfAlong;
+
+	// Stop advancing once within attack range along the lane, but keep recentering laterally.
+	if (FMath::Abs(AlongDelta) <= AttackRange)
+	{
+		const float Lateral0 = FVector::DotProduct(SelfLoc - LaneCenter, Right);
+		AddMovementInput(Right, FMath::Clamp(-Lateral0 / 100.f, -1.f, 1.f));
+		return;
+	}
+
+	// Forward drive along the lane toward the target.
+	const float AlongSign = (AlongDelta >= 0.f) ? 1.f : -1.f;
+	AddMovementInput(Forward, AlongSign);
+
+	// Desired lateral weave (sinusoidal stays bounded within the lane via SinusoidalLateralStrength).
+	float DesiredLateral = 0.f;
+	if (MovementPattern == EMonsterMovementPattern::Sinusoidal && SinusoidalLateralStrength > KINDA_SMALL_NUMBER)
+	{
+		const float Phase = TimeAlive * SinusoidalFrequency * 2.f * PI;
+		DesiredLateral = FMath::Sin(Phase) * SinusoidalLateralStrength * (Grid->GetLaneSpacing() * 0.5f);
+	}
+
+	const float CurrentLateral = FVector::DotProduct(SelfLoc - LaneCenter, Right);
+	const float LateralError = DesiredLateral - CurrentLateral;
+	AddMovementInput(Right, FMath::Clamp(LateralError / 100.f, -1.f, 1.f));
 }
 
 void ABaseMonster::UpdateAttack(float DeltaSeconds)

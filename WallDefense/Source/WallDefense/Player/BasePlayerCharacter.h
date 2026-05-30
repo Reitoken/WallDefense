@@ -26,7 +26,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	void Move(const FInputActionValue& Value);
+	virtual void Move(const FInputActionValue& Value);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Components")
 	TObjectPtr<UWeaponComponent> WeaponComponent;

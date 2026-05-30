@@ -13,6 +13,7 @@ class UMaterialInterface;
 class ABullet;
 class UStaticMesh;
 class AMonsterMovementZone;
+class ALaneGrid;
 
 UENUM(BlueprintType)
 enum class EMonsterMovementPattern : uint8
@@ -55,6 +56,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void SetMovementZone(AMonsterMovementZone* InZone);
+
+	/** Bind this monster to a lane: it will advance along the lane toward the target. */
+	UFUNCTION(BlueprintCallable, Category = "Monster|Lane")
+	void SetLane(ALaneGrid* InLaneGrid, int32 InLaneIndex);
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Lane")
+	int32 GetLaneIndex() const { return LaneIndex; }
 
 	/** Current planar speed (cm/s). Use as float input in your AnimBP. */
 	UFUNCTION(BlueprintPure, Category = "Monster|Animation")
@@ -190,6 +198,14 @@ protected:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AMonsterMovementZone> MovementZone;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ALaneGrid> LaneGrid;
+
+	UPROPERTY(Transient)
+	int32 LaneIndex = INDEX_NONE;
+
+	void UpdateLaneMovement(float DeltaSeconds);
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> HitFlashMIDs;
