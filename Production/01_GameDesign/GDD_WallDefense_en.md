@@ -1,6 +1,6 @@
 # Wall Defense — Game Design Document
 
-> **Document status**: draft v0.1 — June 9, 2026
+> **Document status**: v0.2 (reduced MVP scope) — June 9, 2026
 > Rules marked ✅ are already implemented in the project. Those marked 🔶 are still to be decided/validated.
 > This document is the **single source of truth** for the game rules: any mechanic added to the code must be described here.
 
@@ -8,9 +8,10 @@
 
 ## 1. Vision
 
-### 1.1 Pitch
-🔶 *To refine — starting proposal:*
-A defense game where the player, alone on a battlefield divided into **lanes**, protects a **wall** against waves of monsters. The player moves from lane to lane in the style of *Mega Man Battle Network* and takes down attackers before they reach (or destroy) the wall.
+### 1.1 Pitch ✅ *(decided v0.2)*
+A **small, snappy game**: tower defense with an RPG flavor. Monsters rush a **wall** across **lanes** (*Mega Man Battle Network*-style movement); the player must kill them **as fast as possible** by **switching between weapons** to maximize damage. Killed monsters drop **loot** which is spent in the menu to **upgrade weapons and the character** — losing is never an end: you come back stronger and beat the stage.
+
+**Deliberately reduced scope**: no system stacking — one single, short, generous loop, detailed in `Mechanics/Progression_en.md`.
 
 ### 1.2 Design pillars
 🔶 *Starting proposal, to validate:*
@@ -24,23 +25,20 @@ A defense game where the player, alone on a battlefield divided into **lanes**, 
 
 ---
 
-## 2. Core Loop
-
-🔶 *To validate:*
+## 2. Core Loop ✅ *(decided v0.2)*
 
 ```
-Main menu
-   └─> Run
-        └─> Monster wave announced
-             └─> Combat: move between lanes / shoot / dodge
-                  └─> Wave cleared → reward / preparation   🔶
-                       └─> Next wave (harder)
-                            └─> Defeat (wall or player destroyed) or Victory 🔶
+MENU (hub): upgrade weapons (materials) / character (gold) / pick a stage
+   └─> STAGE: monster waves rushing the wall
+        ├─ Combat: switch weapons + stand on the right lane = kill fast
+        ├─ VICTORY (all waves cleared) → next stage + bonus loot
+        └─ DEFEAT (wall destroyed) → back to menu, LOOT KEPT
+             └─> upgrade → retry the stage
 ```
 
-- 🔶 **Defeat condition**: wall destroyed? player dead? both?
-- 🔶 **Victory condition**: survive N waves? endless mode with score?
-- 🔶 **Between waves**: preparation pause, shop, wall repair?
+- **Defeat**: the wall is destroyed. **Victory**: all waves of the stage cleared.
+- **Losing means progressing**: loot from killed monsters is always kept.
+- Full loop and scope detail: `Mechanics/Progression_en.md`.
 
 ---
 
@@ -83,15 +81,15 @@ Implemented by `LanePlayerCharacter`:
 - The player stays **snapped to the centerline** of their lane (fast interpolation, tunable).
 - Starting lane: index 1 (center lane on a 3-lane grid).
 
-### 4.2 Shooting ✅
-- The player carries a weapon (`Weapon` + `WeaponComponent`) that fires projectiles (`Bullet`).
-- Projectiles use an **object pool** (`BulletPool`) for performance.
-- 🔶 Fire rate, damage, range of the base weapon: values to set in `Balancing/`.
-- 🔶 Multiple weapons? Upgrade system? Limited ammo?
+### 4.2 Weapons and switching ✅ base code / 🔶 design decided v0.2
+- The player carries **3 weapons** and **switches on the fly** — that's the core skill: the right weapon against the right monster (machine gun/single-target, heavy cannon/armor-piercing, shockwave/area).
+- Reason to switch (to validate in prototype 🔶): overheat/rotation + distinct roles. Detail: `Mechanics/Progression_en.md` §2.
+- Existing code: `Weapon` + `WeaponComponent`, `Bullet` projectiles with an **object pool** (`BulletPool`). Multi-weapon and switching still to implement.
+- Weapons are upgraded in the menu with **loot** (+N levels, qualitative milestones).
 
-### 4.3 Player health ✅ / 🔶
-- The player has HP via `HealthComponent` (default: 100 HP, 0 defense).
-- 🔶 Can the player die, or does only the wall matter? Respawn?
+### 4.3 Player health ✅ *(decided v0.2)*
+- **The player cannot die (MVP)**: only the wall matters. At worst, knockback/slow 🔶.
+- The existing `HealthComponent` will serve the wall and the monsters.
 
 ---
 
@@ -142,14 +140,15 @@ All monsters inherit from `BaseMonster`:
 
 ---
 
-## 7. Progression and waves 🔶
+## 7. Progression, loot and stages ✅ *(decided v0.2)* / 🔶 values
 
-Progression is the heart of the intended game feel: player power is a **stack of multipliers** coming from many independent sources (level, classes, skills, starred equipment, artifact collection, companions, exploration…) — there is *always* something to upgrade. Against it, monsters scale on a **sawtooth** model (their growth slightly outpaces the player's passive progression; investing a step — star, rarity — gives a power spike back).
+Deliberately reduced scope: **a single progression loop** (weapons + light character), no system stacking. The "always something to upgrade" spirit is kept, but concentrated.
 
-- **Player power sources (split into features F1–F10)**: see `Mechanics/Progression_en.md`.
-- **Monster scaling: formulas, prototype values, TTK table**: see `Balancing/MonsterScaling_en.md`.
-- 🔶 Detailed wave composition (what, how many, on which lanes, at what pace).
-- 🔶 End-of-wave rewards (currencies, equipment loot, XP).
+- **Loot**: every killed monster drops gold + materials typed per monster (farming is meaningful). Kept even on defeat.
+- **Upgrades**: weapons (+10%/level, qualitative milestones at lv 5/10/15/20) and 4 character stats. Detail: `Mechanics/Progression_en.md`.
+- **Fixed stages**: monster stats are frozen per stage; the player is what rises. Curves, TTK and costs: `Balancing/MonsterScaling_en.md`.
+- MVP targets: 3 weapons, 5 monsters, 10 stages, 1 arena.
+- 🔶 Exact values to tune in playtest (target pacing: a stage beaten in 2–3 runs).
 
 ---
 
@@ -187,11 +186,11 @@ Progression is the heart of the intended game feel: player power is a **stack of
 
 ## 12. Open questions (next decisions)
 
-1. Exact victory/defeat condition (§2).
-2. Detailed wall behavior: HP, segments, repair (§3.2).
-3. Can the player die? (§4.3)
-4. First bestiary: 3–4 monsters for a playable prototype (§5.5).
-5. Minimal wave system to complete a full game loop (§7).
-6. Final camera angle (§8).
-7. Defense formula: flat subtraction (current) vs % reduction — blocking for defensive equipment (see `Balancing/MonsterScaling_en.md` §5).
-8. Final mapping of progression features onto Wall Defense (see `Mechanics/Progression_en.md` §3).
+*Resolved in v0.2: victory/defeat conditions (wall), player mortality (no), progression scope (weapons + light character).*
+
+1. Detailed wall behavior: global HP or per lane segment? repair? (§3.2)
+2. Switch mechanism: overheat only, roles only, or both? → settle in prototype (§4.2).
+3. Exact stats of the 3 weapons (→ reference DPS, `Balancing/MonsterScaling_en.md` §6).
+4. Sheets for the 5 MVP monsters: grunt, fast, tank, shooter, boss (§5.5).
+5. Final camera angle (§8).
+6. Tank "armor": % reduction against wrong weapons — validate the value (`Balancing/MonsterScaling_en.md` §5).

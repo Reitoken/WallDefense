@@ -1,6 +1,6 @@
 # Wall Defense — Game Design Document
 
-> **Statut du document** : brouillon v0.1 — 9 juin 2026
+> **Statut du document** : v0.2 (scope réduit MVP) — 9 juin 2026
 > Les règles marquées ✅ sont déjà implémentées dans le projet. Celles marquées 🔶 sont à décider/valider.
 > Ce document est la **référence unique** des règles du jeu : toute mécanique ajoutée au code doit être décrite ici.
 
@@ -8,9 +8,10 @@
 
 ## 1. Vision
 
-### 1.1 Pitch
-🔶 *À affiner — proposition de départ :*
-Un jeu de défense où le joueur, seul sur un champ de bataille divisé en **lanes**, protège un **mur** contre des vagues de monstres. Le joueur se déplace de lane en lane à la manière de *Mega Man Battle Network* et abat les assaillants avant qu'ils n'atteignent (ou ne détruisent) le mur.
+### 1.1 Pitch ✅ *(décidé v0.2)*
+Un **petit jeu nerveux** : tower defense à saveur RPG. Des monstres foncent sur un **mur** à travers des **lanes** (déplacement type *Mega Man Battle Network*) ; le joueur doit les tuer **le plus vite possible** en **switchant entre ses armes** pour maximiser les dégâts. Les monstres tués lâchent du **loot** qui sert, au menu, à **améliorer les armes et le personnage** — perdre n'est jamais une fin : on revient plus fort et on bat le stage.
+
+**Scope volontairement réduit** : pas d'empilement de systèmes — une seule boucle, courte et généreuse, détaillée dans `Mechanics/Progression_fr.md`.
 
 ### 1.2 Piliers de design
 🔶 *Proposition de départ, à valider :*
@@ -24,23 +25,20 @@ Un jeu de défense où le joueur, seul sur un champ de bataille divisé en **lan
 
 ---
 
-## 2. Boucle de jeu (Core Loop)
-
-🔶 *À valider :*
+## 2. Boucle de jeu (Core Loop) ✅ *(décidé v0.2)*
 
 ```
-Menu principal
-   └─> Partie
-        └─> Vague de monstres annoncée
-             └─> Combat : se déplacer entre les lanes / tirer / esquiver
-                  └─> Vague nettoyée → récompense / préparation   🔶
-                       └─> Vague suivante (plus difficile)
-                            └─> Défaite (mur ou joueur détruit) ou Victoire 🔶
+MENU (hub) : améliorer armes (matériaux) / personnage (or) / choisir un stage
+   └─> STAGE : vagues de monstres qui foncent sur le mur
+        ├─ Combat : switcher d'arme + se placer sur la bonne lane = tuer vite
+        ├─ VICTOIRE (toutes les vagues nettoyées) → stage suivant + loot bonus
+        └─ DÉFAITE (mur détruit) → retour menu, LOOT CONSERVÉ
+             └─> améliorer → retenter le stage
 ```
 
-- 🔶 **Condition de défaite** : mur détruit ? joueur mort ? les deux ?
-- 🔶 **Condition de victoire** : survivre à N vagues ? mode infini avec score ?
-- 🔶 **Entre les vagues** : pause de préparation, boutique, réparation du mur ?
+- **Défaite** : le mur est détruit. **Victoire** : toutes les vagues du stage nettoyées.
+- **Perdre fait progresser** : le loot des monstres tués est toujours conservé.
+- Détail complet de la boucle et du scope : `Mechanics/Progression_fr.md`.
 
 ---
 
@@ -83,15 +81,15 @@ Implémenté par `LanePlayerCharacter` :
 - Le joueur reste **aimanté au centre** de sa lane (interpolation rapide, réglable).
 - Lane de départ : index 1 (lane centrale sur une grille de 3).
 
-### 4.2 Tir ✅
-- Le joueur possède une arme (`Weapon` + `WeaponComponent`) qui tire des projectiles (`Bullet`).
-- Les projectiles utilisent un **pool d'objets** (`BulletPool`) pour la performance.
-- 🔶 Cadence, dégâts, portée de l'arme de base : valeurs à fixer dans `Balancing/`.
-- 🔶 Plusieurs armes ? Système d'amélioration ? Munitions limitées ?
+### 4.2 Armes et switch ✅ code de base / 🔶 design décidé v0.2
+- Le joueur porte **3 armes** et **switche à la volée** — c'est le cœur du skill : la bonne arme contre le bon monstre (mitrailleuse/mono-cible, canon lourd/perce-armure, onde/zone).
+- Raison de switcher (à valider en prototype 🔶) : surchauffe/rotation + rôles distincts. Détail : `Mechanics/Progression_fr.md` §2.
+- Code existant : `Weapon` + `WeaponComponent`, projectiles `Bullet` avec **pool d'objets** (`BulletPool`). Le multi-armes et le switch restent à implémenter.
+- Les armes s'améliorent au menu avec le **loot** (niveaux +N, paliers qualitatifs).
 
-### 4.3 Santé du joueur ✅ / 🔶
-- Le joueur a des PV via `HealthComponent` (défaut : 100 PV, défense 0).
-- 🔶 Le joueur peut-il mourir, ou seul le mur compte ? Respawn ?
+### 4.3 Santé du joueur ✅ *(décidé v0.2)*
+- **Le joueur ne meurt pas (MVP)** : seul le mur compte. Au pire, knockback/ralentissement 🔶.
+- Le `HealthComponent` existant servira au mur et aux monstres.
 
 ---
 
@@ -142,14 +140,15 @@ Tous les monstres héritent de `BaseMonster` :
 
 ---
 
-## 7. Progression et vagues 🔶
+## 7. Progression, loot et stages ✅ *(décidé v0.2)* / 🔶 valeurs
 
-La progression est le cœur du ressenti voulu : la puissance du joueur est un **empilement de multiplicateurs** venant de nombreuses sources indépendantes (niveau, classes, compétences, équipement à étoiles, collection d'artefacts, compagnons, exploration…) — il y a *toujours* quelque chose à améliorer. Face à elle, les monstres évoluent selon un modèle en **dent de scie** (leur croissance dépasse légèrement la progression passive du joueur ; investir un palier — étoile, rareté — redonne un pic de puissance).
+Scope réduit assumé : **une seule boucle de progression** (armes + personnage léger), pas d'empilement de systèmes. L'esprit « il y a toujours quelque chose à améliorer » est conservé, mais concentré.
 
-- **Sources de puissance du joueur (découpées en features F1–F10)** : voir `Mechanics/Progression_fr.md`.
-- **Évolution des monstres : formules, valeurs du prototype, table TTK** : voir `Balancing/MonsterScaling_fr.md`.
-- 🔶 Composition détaillée des vagues (quoi, combien, sur quelles lanes, à quel rythme).
-- 🔶 Récompenses de fin de vague (monnaies, butin d'équipement, XP).
+- **Loot** : chaque monstre tué lâche de l'or + des matériaux typés par monstre (farmer a du sens). Conservé même en défaite.
+- **Améliorations** : armes (+10 %/niveau, paliers qualitatifs aux nv 5/10/15/20) et 4 stats de personnage. Détail : `Mechanics/Progression_fr.md`.
+- **Stages fixes** : les stats des monstres sont figées par stage ; c'est le joueur qui monte. Courbes, TTK et coûts : `Balancing/MonsterScaling_fr.md`.
+- Cibles MVP : 3 armes, 5 monstres, 10 stages, 1 arène.
+- 🔶 Valeurs exactes à caler en playtest (rythme cible : un stage battu en 2–3 runs).
 
 ---
 
@@ -187,11 +186,11 @@ La progression est le cœur du ressenti voulu : la puissance du joueur est un **
 
 ## 12. Questions ouvertes (prochaines décisions)
 
-1. Condition de victoire/défaite exacte (§2).
-2. Fonctionnement détaillé du mur : PV, segments, réparation (§3.2).
-3. Le joueur peut-il mourir ? (§4.3)
-4. Premier bestiaire : 3–4 monstres pour un prototype jouable (§5.5).
-5. Système de vagues minimal pour boucler une première partie complète (§7).
-6. Angle de caméra définitif (§8).
-7. Formule de défense : soustraction flat (actuelle) vs réduction en % — bloquant pour l'équipement défensif (voir `Balancing/MonsterScaling_fr.md` §5).
-8. Mapping final des features de progression sur Wall Defense (voir `Mechanics/Progression_fr.md` §3).
+*Résolues en v0.2 : conditions de victoire/défaite (mur), mortalité du joueur (non), scope de progression (armes + perso léger).*
+
+1. Fonctionnement détaillé du mur : PV global ou par segment de lane ? réparation ? (§3.2)
+2. Mécanisme de switch : surchauffe seule, rôles seuls, ou les deux ? → à trancher au prototype (§4.2).
+3. Stats exactes des 3 armes (→ DPS de référence, `Balancing/MonsterScaling_fr.md` §6).
+4. Fiches des 5 monstres MVP : grunt, rapide, tank, tireur, boss (§5.5).
+5. Angle de caméra définitif (§8).
+6. « Armure » du tank : réduction % contre les mauvaises armes — valider la valeur (`Balancing/MonsterScaling_fr.md` §5).

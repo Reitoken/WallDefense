@@ -1,96 +1,87 @@
-# Progression system — Power sources
+# Progression — Reduced scope (MVP)
 
-> Draft v0.1 — June 9, 2026. Twin document: `Progression_fr.md`.
-> Inspired by mobile idle RPGs: power comes from **many independent sources**, each with its own progression track. The player *always* has something to upgrade → constant feeling of progression.
+> v0.2 — June 9, 2026. Twin document: `Progression_fr.md`.
+> **Scope decision**: we keep the *spirit* of idle RPGs (multipliers, constant progression) but with a **minimal, achievable core**. Extended systems move to the backlog (§5) and must NOT be implemented for the MVP.
 
 ---
 
-## 1. Guiding principle
-
-**Total power is a stack of multipliers.** Each feature below contributes to character stats as **flat values** and/or **percentages**:
+## 1. The full loop (MVP)
 
 ```
-Final stat = (Base + Σ flat contributions from each feature) × (1 + Σ % bonuses from each feature)
+MENU (hub)
+ ├─ Upgrade weapons (with looted materials)
+ ├─ Upgrade the character (with gold)
+ └─ Launch a stage
+      └─> Monster waves → they rush the WALL
+           ├─ VICTORY (all waves cleared) → next stage unlocked + bonus loot
+           └─ DEFEAT (wall destroyed) → back to menu — YOU KEEP ALL THE LOOT
+                └─> upgrade → retry the stage
 ```
 
-Design rules:
-1. **Each source progresses independently** — when one source gets too expensive to raise, another stays affordable.
-2. **Stars extend every track** — every item/element has a rarity + levels + stars (awakening tiers). A single item lives a long time.
-3. **Collection matters** — everything the player *owns* contributes (at a reduced weight), not just what is equipped/active. Owning = progressing.
-4. **A global power score is displayed** — a visible aggregate that goes up with every action (psychological reward).
-5. **At any moment, at least one upgrade must be reachable short-term** (< a few minutes of play).
+**The pillar: losing always means progressing.** Every run yields loot, even a lost one. The player beats a stage *because* they farmed/upgraded — never stuck, just "not strong enough yet".
 
----
+- Defeat = wall destroyed. The player cannot die (MVP) — at worst they take knockbacks/slows 🔶.
+- Victory = all waves of the stage cleared.
 
-## 2. The features (isolated power sources)
+## 2. Weapons — heart of the gameplay AND of progression
 
-### F1 — Hero level
-- XP earned in combat; each level grants base stats (ATK, DEF, HP, SPD).
-- Acts as a **gate** to unlock the other features.
+The player carries **3 weapons** and **switches on the fly** (wheel / buttons). All combat skill = killing as fast as possible by using the right weapon at the right moment.
 
-### F2 — Evolving classes
-- Class tree: base classes → advanced classes → elite classes (e.g. 2 starting branches that fork).
-- Each class has **its own level**; the **total class level** (sum of all leveled classes) grants permanent bonuses — leveling a class you no longer play stays useful.
-- Class change unlocked at a hero milestone; each class drives a style (offense, defense, support).
-- Typed bonuses: % ATK/DEF/HP/SPD + signature stats (e.g. crit resistance, healing bonus).
+### 2.1 Why switch? (the moment-to-moment fun)
+Two complementary mechanisms 🔶 (to validate in prototype):
+1. **Overheat/reload**: continuous fire overheats a weapon → optimal DPS comes from **rotating** between weapons.
+2. **Distinct roles**: each weapon excels against a monster profile.
 
-### F3 — Skills
-- Three families: **active** (triggered), **passive** (permanent), **fragments** (equippable modifiers).
-- Each skill has a **level** (raised with resources) and **stars** (rarity/awakening) unlocking extra effects.
+| Weapon (MVP) | Role | Strong vs | Weak vs |
+|---|---|---|---|
+| Machine gun | sustained single-target DPS | fast | tanks (armor) |
+| Heavy cannon | slow burst, armor-piercing | tanks, bosses | swarms |
+| Shockwave | area damage | swarms/groups | isolated targets |
 
-### F4 — Equipment
-- Multiple slots (weapon, armor, accessories…).
-- Each piece: **rarity** (common → legendary) × **upgrade level (+N)** × **stars**.
-- Main stats + varied **substats** (accuracy, crit rate/damage, block, healing bonus, masteries/resistances per damage type…).
+### 2.2 Weapon upgrades (the main progression)
+- Each weapon has a **level (+N)**: cost = **materials** (loot) + **gold**.
+- Each level: **+10% base damage** 🔶.
+- **Qualitative milestones** at levels 5/10/15/20: tangible bonus (fire rate, armor-piercing, area width…) — that's the "power spike" of the sawtooth.
+- No stars, no rarity, no substats in the MVP (→ backlog).
 
-### F5 — Artifact collection
-- Artifacts sorted **by element/type**, with rarities (rare → epic → legendary) and levels (+N).
-- **Collection resonance**: owning N artifacts of a type grants global bonus tiers ("resonance level") — even duplicates/unused pieces contribute.
-- Two twin stats per element: **offensive** (affinity) and **defensive** (aegis) — the collection feeds both attack AND defense.
+## 3. Loot
 
-### F6 — Companions
-- Creature roster: **1 active** (100% bonus), **secondaries** (50%), **all other owned** (20%) — the whole roster contributes permanently.
-- Each companion: level (fed with resources), rarity/stars, its own **ability tree** (multiple pages).
-- **Roster resonance**: bonus tiers based on the cumulative level of companions.
+- **Every monster killed** drops: **gold** (universal currency) + a chance of **upgrade materials**.
+- Materials typed per monster: e.g. the tank drops `Plates`, the fast one drops `Fibers`… → upgrading the anti-tank weapon requires killing tanks: farming is meaningful.
+- **Stage boss**: guaranteed materials + first kill = big bonus.
+- Loot is kept on defeat (golden rule §1).
+- 3–4 material types maximum in the MVP.
 
-### F7 — Exploration
-- **Permanent** stat bonuses tied to the exploration % of each zone/level — rewards completion.
+## 4. The character (light)
 
-### F8 — Consumables / cooking
-- Semi-permanent stat buffs (dishes, elixirs) with their own recipes to collect and upgrade.
+A few stats raised in the menu **with gold only** (no materials):
 
-### F9 — Social / guild
-- Modest collective bonuses (the group makes the individual progress).
+| Stat | Effect | Levels |
+|---|---|---|
+| Wall HP | +X HP per level | ~20 |
+| Global damage | +2% per level (all weapons) | ~20 |
+| Movement speed | +2% per level | ~10 |
+| Cooling | slower overheat | ~10 |
 
-### F10 — Stat cosmetics
-- Appearances (faces, skins) with small stats — customization participates in power.
+No classes, no tree, no companions in the MVP.
 
----
+## 5. Post-MVP backlog (the former full list)
 
-## 3. Adaptation to Wall Defense 🔶
+The idle-RPG-inspired systems, **to ship only if the core is fun** — by likely value:
+1. Weapon stars/rarity (extends every upgrade track).
+2. New weapons to unlock (4th, 5th…).
+3. A single companion/turret.
+4. Wall modules (traps, armor).
+5. Classes/specializations, artifacts + collection resonance, exploration, cooking, guild, cosmetics — see this file's git history for the full detail (version v0.1).
 
-Proposed mapping (to validate):
+## 6. MVP content targets 🔶
 
-| Generic feature | In Wall Defense |
+| Content | Quantity |
 |---|---|
-| F1 Hero | Defender level |
-| F2 Classes | Defender specializations (gunner, builder, healer…) |
-| F3 Skills | Special shots, lane passives, modifiers |
-| F4 Equipment | Defender weapons + armor pieces |
-| F5 Artifacts | Relics per damage type (affinity/aegis per element) |
-| F6 Companions | Drones/turrets/allied creatures on the lanes |
-| F7 Exploration | Arena completion (level stars) |
-| F8 Cooking | Siege rations (run buffs) |
-| F9 Guild | (post-launch) |
-| F10 Cosmetics | Defender and wall skins |
-| **The wall** | Extra power source unique to our game: HP, armor, modules — its own progression track |
+| Weapons | 3 |
+| Monster types | 5 (grunt, fast, tank, shooter, boss) |
+| Stages | 10 |
+| Arena | 1 (color variations) |
+| Loot materials | 3–4 |
 
----
-
-## 4. Proposed implementation order 🔶
-
-1. **Simplified F1 + F4** (hero level + one weapon with rarity/level/stars) — enough to validate the loop against monster scaling.
-2. F3 (3–4 skills), then F6 (1 companion), then F5 (collection resonance).
-3. The rest post-prototype.
-
-> Numbers and curves (player vs monsters) live in `../Balancing/MonsterScaling_en.md`.
+> Numbers (per-stage curves, costs, TTK) live in `../Balancing/MonsterScaling_en.md`.

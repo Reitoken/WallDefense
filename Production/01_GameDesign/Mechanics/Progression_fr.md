@@ -1,96 +1,87 @@
-# Système de progression — Sources de puissance
+# Progression — Scope réduit (MVP)
 
-> Brouillon v0.1 — 9 juin 2026. Document jumeau : `Progression_en.md`.
-> Inspiré des RPG idle mobiles : la puissance vient de **nombreuses sources indépendantes**, chacune avec sa propre piste de progression. Le joueur a *toujours* quelque chose à améliorer → sensation de progression constante.
+> v0.2 — 9 juin 2026. Document jumeau : `Progression_en.md`.
+> **Décision de scope** : on garde *l'esprit* des RPG idle (multiplicateurs, progression constante) mais avec un **cœur minimal et réalisable**. Les systèmes étendus sont déplacés en backlog (§5) et ne doivent PAS être implémentés pour le MVP.
 
 ---
 
-## 1. Principe directeur
-
-**La puissance totale est un empilement de multiplicateurs.** Chaque feature ci-dessous contribue aux statistiques du personnage en **valeur brute (flat)** et/ou en **pourcentage** :
+## 1. La boucle complète (MVP)
 
 ```
-Stat finale = (Base + Σ contributions flat de chaque feature) × (1 + Σ bonus % de chaque feature)
+MENU (hub)
+ ├─ Améliorer les armes (avec les matériaux lootés)
+ ├─ Améliorer le personnage (avec l'or)
+ └─ Lancer un stage
+      └─> Vagues de monstres → ils foncent sur le MUR
+           ├─ VICTOIRE (toutes les vagues nettoyées) → stage suivant débloqué + loot bonus
+           └─ DÉFAITE (mur détruit) → retour menu — ON GARDE TOUT LE LOOT
+                └─> améliorer → retenter le stage
 ```
 
-Règles de design :
-1. **Chaque source progresse indépendamment** — quand une source coûte trop cher à monter, une autre reste abordable.
-2. **Les étoiles allongent chaque piste** — tout objet/élément a une rareté + des niveaux + des étoiles (paliers d'éveil). Un même objet vit longtemps.
-3. **La collection compte** — tout ce que le joueur *possède* contribue (avec un poids réduit), pas seulement ce qui est équipé/actif. Posséder = progresser.
-4. **Score de puissance global affiché** — un agrégat visible qui monte à chaque action (récompense psychologique).
-5. **À tout moment, au moins une amélioration doit être accessible à court terme** (< quelques minutes de jeu).
+**Le pilier : perdre fait toujours progresser.** Chaque run rapporte du loot, même perdue. Le joueur bat un stage *parce qu'il* a farmé/amélioré — jamais bloqué, juste « pas encore assez fort ».
 
----
+- Défaite = mur détruit. Le joueur ne meurt pas (MVP) — il encaisse au pire des knockbacks/ralentissements 🔶.
+- Victoire = toutes les vagues du stage nettoyées.
 
-## 2. Les features (sources de puissance isolées)
+## 2. Les armes — cœur du gameplay ET de la progression
 
-### F1 — Niveau du héros
-- XP gagnée en combat ; chaque niveau donne des stats de base (ATQ, DÉF, PV, VIT).
-- Sert de **portail** pour débloquer les autres features.
+Le joueur porte **3 armes** et **switche à la volée** (molette / boutons). Tout le skill en combat = tuer le plus vite possible en utilisant la bonne arme au bon moment.
 
-### F2 — Classes évolutives
-- Arbre de classes : classes de base → classes avancées → classes d'élite (ex. 2 branches de départ qui se ramifient).
-- Chaque classe a **son propre niveau** ; le **niveau total de classe** (somme de toutes les classes montées) donne des bonus permanents — monter une classe qu'on ne joue plus reste utile.
-- Changement de classe déverrouillé à un palier du héros ; chaque classe oriente un style (offense, défense, soutien).
-- Bonus typés : % ATQ/DÉF/PV/VIT + stats signature (ex. résistance critique, bonus de soin).
+### 2.1 Pourquoi switcher ? (le fun moment-à-moment)
+Deux mécanismes complémentaires 🔶 (à valider en prototype) :
+1. **Surchauffe/rechargement** : tirer en continu surchauffe l'arme → le DPS optimal s'obtient en **rotation** entre les armes.
+2. **Rôles distincts** : chaque arme excelle contre un profil de monstre.
 
-### F3 — Compétences
-- Trois familles : **actives** (déclenchées), **passives** (permanentes), **fragments** (modificateurs équipables).
-- Chaque compétence a un **niveau** (monte avec des ressources) et des **étoiles** (rareté/éveil) qui débloquent des effets supplémentaires.
+| Arme (MVP) | Rôle | Forte contre | Faible contre |
+|---|---|---|---|
+| Mitrailleuse | DPS soutenu mono-cible | rapides | tanks (armure) |
+| Canon lourd | burst lent, perce-armure | tanks, boss | essaims |
+| Onde de choc | dégâts de zone | essaims/groupes | cibles isolées |
 
-### F4 — Équipement
-- Slots multiples (arme, armure, accessoires…).
-- Chaque pièce : **rareté** (commun → légendaire) × **niveau d'amélioration (+N)** × **étoiles**.
-- Stats principales + **sous-stats** variées (précision, taux/dégâts critiques, blocage, bonus de soin, maîtrises/résistances par type de dégâts…).
+### 2.2 Amélioration des armes (la progression principale)
+- Chaque arme a un **niveau (+N)** : coût = **matériaux** (loot) + **or**.
+- Chaque niveau : **+10 % de dégâts de base** 🔶.
+- **Paliers qualitatifs** aux niveaux 5/10/15/20 : bonus tangible (cadence, perce-armure, largeur de zone…) — c'est le « pic de puissance » de la dent de scie.
+- Pas d'étoiles, pas de rareté, pas de sous-stats au MVP (→ backlog).
 
-### F5 — Collection d'artefacts
-- Artefacts classés **par élément/type**, avec raretés (rare → épique → légendaire) et niveaux (+N).
-- **Résonance de collection** : posséder N artefacts d'un type donne des paliers de bonus globaux (« niveau de résonance ») — même les doublons/pièces non utilisées font progresser.
-- Deux stats jumelles par élément : **offensive** (affinité) et **défensive** (égide) — la collection nourrit l'attaque ET la défense.
+## 3. Le loot
 
-### F6 — Compagnons
-- Roster de créatures : **1 active** (bonus 100 %), **secondaires** (50 %), **toutes les autres possédées** (20 %) — tout le roster contribue en permanence.
-- Chaque compagnon : niveau (nourrissage avec ressources), rareté/étoiles, **arbre d'aptitudes** propre (plusieurs pages).
-- **Résonance de roster** : paliers de bonus selon le niveau cumulé des compagnons.
+- **Chaque monstre tué** lâche : **or** (monnaie universelle) + chance de **matériaux d'amélioration**.
+- Matériaux typés par monstre : ex. le tank lâche des `Plaques`, le rapide des `Fibres`… → améliorer l'arme anti-tank demande de tuer des tanks : le farm a du sens.
+- **Boss de stage** : matériaux garantis + premier kill = gros bonus.
+- Le loot est conservé en cas de défaite (règle d'or §1).
+- 3–4 types de matériaux maximum au MVP.
 
-### F7 — Exploration
-- Bonus de stats **permanents** liés au % d'exploration de chaque zone/niveau — récompense la complétion.
+## 4. Le personnage (léger)
 
-### F8 — Consommables / cuisine
-- Buffs de stats semi-permanents (plats, élixirs) avec leurs propres recettes à collectionner et améliorer.
+Quelques stats à monter au menu **avec l'or seul** (pas de matériaux) :
 
-### F9 — Social / guilde
-- Bonus collectifs modestes (le groupe fait progresser l'individu).
+| Stat | Effet | Niveaux |
+|---|---|---|
+| PV du mur | +X PV par niveau | ~20 |
+| Dégâts globaux | +2 % par niveau (toutes armes) | ~20 |
+| Vitesse de déplacement | +2 % par niveau | ~10 |
+| Refroidissement | surchauffe plus lente | ~10 |
 
-### F10 — Cosmétiques à stats
-- Apparences (visages, skins) avec petites stats — la personnalisation participe à la puissance.
+Pas de classes, pas d'arbre, pas de compagnons au MVP.
 
----
+## 5. Backlog post-MVP (l'ex-liste complète)
 
-## 3. Adaptation à Wall Defense 🔶
+Les systèmes inspirés des RPG idle, **à ne sortir que si le cœur est fun** — par ordre de valeur probable :
+1. Étoiles/rareté d'armes (allonge chaque piste d'amélioration).
+2. Nouvelles armes à débloquer (4e, 5e…).
+3. Compagnon/tourelle unique.
+4. Modules du mur (pièges, armure).
+5. Classes/spécialisations, artefacts + résonance de collection, exploration, cuisine, guilde, cosmétiques — voir l'historique git de ce fichier pour le détail complet (version v0.1).
 
-Mapping proposé (à valider) :
+## 6. Cibles de contenu MVP 🔶
 
-| Feature générique | Dans Wall Defense |
+| Contenu | Quantité |
 |---|---|
-| F1 Héros | Niveau du défenseur |
-| F2 Classes | Spécialisations du défenseur (artilleur, bâtisseur, soigneur…) |
-| F3 Compétences | Tirs spéciaux, passifs de lane, modificateurs |
-| F4 Équipement | Armes + pièces d'armure du défenseur |
-| F5 Artefacts | Reliques par type de dégâts (affinité/égide par élément) |
-| F6 Compagnons | Drones/tourelles/créatures alliées sur les lanes |
-| F7 Exploration | Complétion des arènes (étoiles de niveau) |
-| F8 Cuisine | Rations de siège (buffs de partie) |
-| F9 Guilde | (post-launch) |
-| F10 Cosmétiques | Skins du défenseur et du mur |
-| **Le mur** | Source de puissance supplémentaire propre au jeu : PV, armure, modules — sa propre piste de progression |
+| Armes | 3 |
+| Types de monstres | 5 (grunt, rapide, tank, tireur, boss) |
+| Stages | 10 |
+| Arène | 1 (variations de couleur) |
+| Matériaux de loot | 3–4 |
 
----
-
-## 4. Ordre d'implémentation proposé 🔶
-
-1. **F1 + F4 simplifiés** (niveau héros + une arme à rareté/niveau/étoiles) — suffit pour valider la boucle avec l'évolution des monstres.
-2. F3 (3–4 compétences), puis F6 (1 compagnon), puis F5 (résonance de collection).
-3. Le reste en post-prototype.
-
-> L'équilibrage chiffré (courbes joueur vs monstres) vit dans `../Balancing/MonsterScaling_fr.md`.
+> L'équilibrage chiffré (courbes par stage, coûts, TTK) vit dans `../Balancing/MonsterScaling_fr.md`.

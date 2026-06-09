@@ -1,102 +1,83 @@
-# Monster scaling — Balancing against player progression
+# Monster scaling — Per-stage balancing (MVP)
 
-> Draft v0.1 — June 9, 2026. Twin document: `MonsterScaling_fr.md`.
-> Prerequisite: `../Mechanics/Progression_en.md` (the player's power sources).
+> v0.2 — June 9, 2026. Twin document: `MonsterScaling_fr.md`.
+> Prerequisite: `../Mechanics/Progression_en.md` (stage → loot → upgrade → retry loop).
 
 ---
 
-## 1. The problem to solve
+## 1. The model: fixed stages, a rising player
 
-The player stacks power multipliers constantly. If monsters don't scale at the right pace:
-- **too slow** → the game becomes trivial, progression no longer *feels* like anything (everything dies instantly no matter what);
-- **too fast** → frustration wall, progression feels pointless.
+With the "retry the stage after upgrading" loop, balancing changes nature:
+- **Monster stats are FIXED per stage** (stage 4 is always stage 4). The player is what moves.
+- Within a stage, successive waves increase **count/density**, not stats — readability stays constant during a run.
+- The "difficulty wall" is natural: the player fails stage N, farms (earlier stages or their attempts), upgrades, comes back. **The sawtooth IS the defeat → upgrade → victory rhythm.**
 
-The goal is NOT for monsters to exactly track the player: it is to create a controlled **sawtooth**.
+The felt variable is still **TTK** (time-to-kill): `TTK = monster_HP(stage) / player_DPS(upgrades)`.
 
-## 2. The sawtooth model
-
-We define:
-- `P(w)`: expected offensive power of an "on-curve" player at wave `w` (effective DPS).
-- `HP_m(w)`: hit points of a base monster at wave `w`.
-- **TTK** (time-to-kill) = `HP_m(w) / P(w)`: time to kill a monster. This is THE felt variable.
-
-**Golden rule: monsters grow slightly faster than the player's "passive" progression.**
+## 2. Per-stage curves 🔶
 
 ```
-HP_m(w)  = HP_0  × g_hp^w          (geometric growth per wave)
-ATK_m(w) = ATK_0 × g_atk^w         with g_atk < g_hp
-P(w)     = P_0   × g_p^w  × M(w)   M(w) = "step" multipliers (stars, rarity, awakening)
+HP_m(s)  = 100 × 1.32^(s−1)      (grunt, stage s)
+ATK_m(s) = 10  × 1.22^(s−1)
+Speed    = constant per type (speed does NOT scale — it's part of a monster's identity)
 ```
 
-- The ratio `r = g_hp / g_p > 1` slowly raises the TTK → growing pressure.
-- When TTK leaves the comfort zone, the player invests in a **step** (star, new rarity, awakening) → `M(w)` jumps (×1.5 to ×2) → TTK drops back → **feeling of power**. That's the sawtooth.
-- `g_atk < g_hp`: difficulty must come through **attrition** (monsters take longer to kill, the wall takes hits), not through one-shotting the player.
+| Stage | Grunt HP | Grunt ATK | "Expected" player DPS | TTK (right weapon) |
+|---|---|---|---|---|
+| 1 | 100 | 10 | 40 | 2.5 s |
+| 3 | 174 | 15 | 62 | 2.8 s |
+| 5 | 304 | 22 | 97 | 3.1 s |
+| 7 | 529 | 33 | 152 | 3.5 s |
+| 10 | 1,217 | 60 | 305 | 4.0 s |
 
-### Difficulty wall cadence
+- **TTK target zone**: 2–5 s for a grunt with the right weapon (×1.5–×2 with the wrong one — that's the switch's punishment/reward), 30–60 s for a boss.
+- The "expected" player DPS comes from upgrades (§3): if the player arrives under the curve, the stage pushes them back → farm → return stronger.
 
-TTK doubles every `N = ln(2) / ln(r)` waves if the player doesn't invest.
+### Role multipliers (on top of the stage base)
 
-| Chosen `r` | TTK doubles every… | Feel |
-|---|---|---|
-| 1.02 | ~35 waves | very gentle, chill game |
-| **1.035** | **~20 waves** | **recommended for the prototype** |
-| 1.05 | ~14 waves | demanding, tense game |
+| Role | HP | ATK | Speed | Note |
+|---|---|---|---|---|
+| Grunt | ×1 | ×1 | ×1 | reference |
+| Fast | ×0.5 | ×0.8 | ×1.8 | breakthrough threat |
+| Tank | ×5 | ×0.8 | ×0.55 | armor 🔶: resists everything but the heavy cannon |
+| Shooter | ×0.8 | ×1.2 | ×0.9 | ranged attacks |
+| Boss (stage end) | ×15 | ×2.5 | ×0.7 | guaranteed materials |
 
-## 3. Proposed prototype values 🔶
+### Waves within a stage
+- One stage = **5 waves + 1 boss wave** 🔶.
+- Count: `N(wave) = 4 + wave + ⌊stage/2⌋`, capped by lane capacity.
+- Composition introduces roles progressively (stage 1: grunts only; fast from stage 2; tank at 3; shooter at 4).
 
-Anchored to current code defaults (`BaseMonster`: 100 HP, strength 10; `HealthComponent`: 100 player HP):
+## 3. The player curve (upgrade side)
 
-| Parameter | Value | Note |
-|---|---|---|
-| `HP_0` (grunt, wave 1) | 100 | current code default |
-| `ATK_0` | 10 | current code default |
-| `P_0` (player DPS, wave 1) | 40 | 🔶 e.g. 10 damage × 4 shots/s — to set with the weapon |
-| `g_hp` | 1.10 / wave | |
-| `g_atk` | 1.07 / wave | attrition > burst |
-| `g_p` (on-curve player) | 1.065 / wave | → `r ≈ 1.033`, wall ~every 21 waves |
-| Monster speed | +0.5% / wave, **capped at +50%** | speed must never make a lane unplayable |
-| Count per wave | `6 + ⌊w/2⌋`, capped by lane capacity | density is part of the difficulty |
+MVP DPS sources (see Progression §2.2 and §4):
+- Weapon level: **+10% base damage per level** (~20 levels) → up to ×3 per weapon.
+- Weapon milestones (5/10/15/20): qualitative bonuses ≈ **×1.5 cumulative**.
+- Character global damage: +2%/level × 20 → **×1.4**.
+- **Right weapon vs right monster: ×1.5–×2 effective** (free — that's skill).
 
-### Role multipliers (applied on top of the wave base)
+Total available ≈ ×6–9 over the MVP: consistent with the HP curve (×12 at stage 10) **provided** the player uses weapon switching — intended: stats alone aren't quite enough.
 
-| Role | HP | ATK | Appears |
-|---|---|---|---|
-| Grunt | ×1 | ×1 | every wave |
-| Fast | ×0.6 | ×0.8 (speed ×1.8) | from wave 3 |
-| Tank | ×4 | ×0.7 (speed ×0.6) | every 5 waves |
-| Elite | ×4 | ×2 | every 5 waves |
-| Boss | ×15 | ×3 | every 10 waves |
+### Upgrade costs (to tune with loot)
+```
+Weapon_cost(level n) = base × 1.18^n   (materials + gold)
+```
+Pacing target 🔶: beating stage N for the first time ≈ **2–3 runs** (1 instructive defeat + farm + win). If playtests show > 4 runs → lower costs or raise loot, never the sneaky opposite.
 
-### Control table (grunt, "on-curve" player, no step invested)
+## 4. Scaling must not be stats only
 
-| Wave | Monster HP | Player DPS | TTK |
-|---|---|---|---|
-| 1 | 110 | 43 | 2.6 s |
-| 5 | 161 | 55 | 2.9 s |
-| 10 | 259 | 75 | 3.5 s |
-| 15 | 418 | 103 | 4.1 s |
-| 20 | 673 | 141 | 4.8 s |
-| 30 | 1,745 | 265 | 6.6 s |
-| 40 | 4,526 | 497 | 9.1 s |
-| 50 | 11,739 | 932 | 12.6 s |
-
-**Reading**: without step investment, TTK drifts from 2.6 s to 12.6 s. Each purchased step (×1.5–×2) brings it back into the **target zone: 2 to 6 s for a grunt** (boss: 30–60 s). If the player over-invests, they steamroll for 10–15 waves — intended, that's the reward.
-
-## 4. Scaling must not be stats only 🔶
-
-Numbers alone become invisible. **Qualitative** milestones:
-- **Every ~10 waves**: new behavior (more aggressive sinusoidal pattern, shooters, lane jumps 🔶…).
-- **Visual variants**: recolors between milestones, a new monster at major milestones.
-- The bestiary (GDD §5.5) should be designed as a **role × tier grid**.
+- Each **new monster role** appears at a precise stage (§2): difficulty renews through composition, not just numbers.
+- Visual variety: monster recolors every ~3 stages 🔶.
 
 ## 5. Known traps / current code constraints
 
-1. ⚠️ **Flat-subtraction defense** (`actual damage = incoming − defense`, `HealthComponent`): with geometrically growing ATK, flat defense quickly becomes worthless — or invincible in the other direction. If we keep the formula, player/wall defense must grow on the **same geometric curve** as `g_atk`; otherwise switch to % reduction (`damage × 100/(100+DEF)`). 🔶 decision needed before implementing defensive equipment.
-2. **Speed** must never scale uncapped (an uncrossable lane is frustration, not difficulty).
-3. Everything must be **data-driven**: `DT_MonsterScaling` DataTable (HP/ATK/speed/count curves per wave) + role multipliers, never hardcoded constants — balancing will iterate through this file and the DataTable.
+1. ⚠️ **Flat-subtraction defense** (`actual damage = incoming − defense`, `HealthComponent`): with ATK ×1.22 per stage, a flat wall defense quickly becomes worthless or blocks everything. MVP recommendation: **wall has no defense stat, HP only** (simple, readable); the tank's "armor" = % reduction against the wrong weapons. 🔶
+2. **Speed never scales**: a stage-10 fast monster is as fast as a stage-2 one — its count and context make it dangerous.
+3. Everything in **DataTables** (`DT_StageScaling`: HP/ATK/count per stage; `DT_MonsterRoles`: multipliers) — balancing iterates here + in the table, never hardcoded.
 
 ## 6. Next steps
 
-1. Set the base weapon stats (→ real `P_0`) 🔶
-2. Implement scaling at spawn: `Stats = Base × Curve(wave) × RoleMultiplier` (DataTable + wave spawner).
-3. Playtest: verify the 2–6 s TTK zone over the first 10 waves, adjust `g_hp`.
+1. Set the 3 weapons' stats (→ reference DPS `P_0 = 40` to validate) 🔶
+2. Implement: wave spawner reading `DT_StageScaling`, stats applied at spawn.
+3. Loot: drop table per monster role (gold + typed material).
+4. Playtest stages 1–3: verify 2–5 s TTK and the "2–3 runs per stage" pacing.
