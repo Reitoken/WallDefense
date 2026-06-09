@@ -142,13 +142,14 @@ All monsters inherit from `BaseMonster`:
 
 ---
 
-## 7. Waves and progression 🔶
+## 7. Progression and waves 🔶
 
-*System not implemented — to design:*
-- Wave composition (what, how many, on which lanes, at what pace).
-- Difficulty curve (increasing HP/speed? new types?).
-- End-of-wave rewards (currency? upgrades?).
-- Balancing spreadsheets to maintain in `01_GameDesign/Balancing/`.
+Progression is the heart of the intended game feel: player power is a **stack of multipliers** coming from many independent sources (level, classes, skills, starred equipment, artifact collection, companions, exploration…) — there is *always* something to upgrade. Against it, monsters scale on a **sawtooth** model (their growth slightly outpaces the player's passive progression; investing a step — star, rarity — gives a power spike back).
+
+- **Player power sources (split into features F1–F10)**: see `Mechanics/Progression_en.md`.
+- **Monster scaling: formulas, prototype values, TTK table**: see `Balancing/MonsterScaling_en.md`.
+- 🔶 Detailed wave composition (what, how many, on which lanes, at what pace).
+- 🔶 End-of-wave rewards (currencies, equipment loot, XP).
 
 ---
 
@@ -192,3 +193,5 @@ All monsters inherit from `BaseMonster`:
 4. First bestiary: 3–4 monsters for a playable prototype (§5.5).
 5. Minimal wave system to complete a full game loop (§7).
 6. Final camera angle (§8).
+7. Defense formula: flat subtraction (current) vs % reduction — blocking for defensive equipment (see `Balancing/MonsterScaling_en.md` §5).
+8. Final mapping of progression features onto Wall Defense (see `Mechanics/Progression_en.md` §3).

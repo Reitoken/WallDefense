@@ -142,13 +142,14 @@ Tous les monstres héritent de `BaseMonster` :
 
 ---
 
-## 7. Vagues et progression 🔶
+## 7. Progression et vagues 🔶
 
-*Système non implémenté — à concevoir :*
-- Composition des vagues (quoi, combien, sur quelles lanes, à quel rythme).
-- Courbe de difficulté (PV/vitesse croissants ? nouveaux types ?).
-- Récompenses de fin de vague (monnaie ? améliorations ?).
-- Tableaux d'équilibrage à tenir dans `01_GameDesign/Balancing/`.
+La progression est le cœur du ressenti voulu : la puissance du joueur est un **empilement de multiplicateurs** venant de nombreuses sources indépendantes (niveau, classes, compétences, équipement à étoiles, collection d'artefacts, compagnons, exploration…) — il y a *toujours* quelque chose à améliorer. Face à elle, les monstres évoluent selon un modèle en **dent de scie** (leur croissance dépasse légèrement la progression passive du joueur ; investir un palier — étoile, rareté — redonne un pic de puissance).
+
+- **Sources de puissance du joueur (découpées en features F1–F10)** : voir `Mechanics/Progression_fr.md`.
+- **Évolution des monstres : formules, valeurs du prototype, table TTK** : voir `Balancing/MonsterScaling_fr.md`.
+- 🔶 Composition détaillée des vagues (quoi, combien, sur quelles lanes, à quel rythme).
+- 🔶 Récompenses de fin de vague (monnaies, butin d'équipement, XP).
 
 ---
 
@@ -192,3 +193,5 @@ Tous les monstres héritent de `BaseMonster` :
 4. Premier bestiaire : 3–4 monstres pour un prototype jouable (§5.5).
 5. Système de vagues minimal pour boucler une première partie complète (§7).
 6. Angle de caméra définitif (§8).
+7. Formule de défense : soustraction flat (actuelle) vs réduction en % — bloquant pour l'équipement défensif (voir `Balancing/MonsterScaling_fr.md` §5).
+8. Mapping final des features de progression sur Wall Defense (voir `Mechanics/Progression_fr.md` §3).
