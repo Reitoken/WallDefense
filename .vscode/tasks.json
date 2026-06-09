@@ -1,0 +1,79 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "env": {
+            "UE_ROOT": "C:\\Unreal Engine\\UE_5.7"
+        }
+    },
+    "tasks": [
+        {
+            "label": "UE: Build Editor (Development)",
+            "type": "shell",
+            "command": "& \"${env:UE_ROOT}\\Engine\\Build\\BatchFiles\\Build.bat\" WallDefenseEditor Win64 Development -project=\"${workspaceFolder}\\WallDefense\\WallDefense.uproject\" -waitmutex",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "UE: Build Game (Development)",
+            "type": "shell",
+            "command": "& \"${env:UE_ROOT}\\Engine\\Build\\BatchFiles\\Build.bat\" WallDefense Win64 Development -project=\"${workspaceFolder}\\WallDefense\\WallDefense.uproject\" -waitmutex",
+            "group": "build",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "UE: Rebuild Editor",
+            "type": "shell",
+            "command": "& \"${env:UE_ROOT}\\Engine\\Build\\BatchFiles\\Rebuild.bat\" WallDefenseEditor Win64 Development -project=\"${workspaceFolder}\\WallDefense\\WallDefense.uproject\" -waitmutex",
+            "group": "build",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "UE: Clean Editor",
+            "type": "shell",
+            "command": "& \"${env:UE_ROOT}\\Engine\\Build\\BatchFiles\\Clean.bat\" WallDefenseEditor Win64 Development -project=\"${workspaceFolder}\\WallDefense\\WallDefense.uproject\" -waitmutex",
+            "group": "build",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "UE: Generate Project Files",
+            "type": "shell",
+            "command": "& \"${env:UE_ROOT}\\Engine\\Build\\BatchFiles\\Build.bat\" -projectfiles -project=\"${workspaceFolder}\\WallDefense\\WallDefense.uproject\" -game -engine",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "UE: Open Editor",
+            "type": "shell",
+            "command": "Start-Process \"${env:UE_ROOT}\\Engine\\Binaries\\Win64\\UnrealEditor.exe\" -ArgumentList '\"${workspaceFolder}\\WallDefense\\WallDefense.uproject\"'",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent"
+            }
+        }
+    ]
+}
