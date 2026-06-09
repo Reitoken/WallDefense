@@ -18,3 +18,4 @@ game design, sources d'assets, documents, références.
 - Les assets **importés dans le jeu** (.uasset) vont dans `WallDefense/Content/` — ici on garde uniquement les **fichiers sources** (modifiables).
 - Les fichiers lourds (images, 3D, audio, archives) passent automatiquement par **Git LFS** (voir `.gitattributes` à la racine).
 - Convention de nommage des assets du jeu : voir `WallDefense/ReadeMe.txt`.
+- Chaque document Markdown de ce dossier existe en deux versions synchronisées : `_fr` (français) et `_en` (anglais).
