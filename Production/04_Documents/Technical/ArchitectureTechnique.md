@@ -1,6 +1,6 @@
 # Architecture technique — Wall Defense
 
-> v1.4 — 12 juin 2026 (ajouts : préchargement, options, i18n, hit response, conventions de sockets §11, **décisions UX validées : pause, résumé, musique dynamique, Steam, barres de vie, chrono de vagues**). Document de référence AVANT d'écrire le code — **prêt pour review**.
+> v1.5 — 12 juin 2026 (ajouts : préchargement, options, i18n, hit response, conventions de sockets §11, décisions UX validées, **état d'animation exposé aux AnimBP §6.5**). Document de référence AVANT d'écrire le code — **prêt pour review**.
 > Tout est **C++** ; les Blueprints/assets ne font que du visuel et de la donnée. Préfixe de classes : `WD`.
 
 ---
@@ -113,7 +113,22 @@
 | **`AWDLootPickup`** | Un drop au sol : type/quantité, **durée de vie + clignotement**, attiré par le Magnet. → `OnExpired`, `OnCollected` |
 | **`AWDDamageNumber`** *(poolé)* | Un chiffre de dégâts flottant : valeur, style (élément, **FAIBLESSE!**, résisté, critique 🔶), petite anim, retour au pool. Désactivable dans les options. |
 
-### 6.5 La partie (stage)
+### 6.5 Animation — l'état exposé aux AnimBP ✅ (v1.5)
+
+> Même philosophie que l'UI : **le C++ expose l'état, l'Anim Blueprint ne fait que les transitions**. Aucune logique dans l'AnimGraph, jamais de cast/recherche de composants dans le BP.
+
+- **`UWDAnimInstanceBase`** (classe C++ d'AnimInstance) : à chaque frame (`NativeThreadSafeUpdateAnimation`), elle **collecte l'état auprès des composants** du pawn et le publie en **variables exposées** (`UPROPERTY BlueprintReadOnly`) directement utilisables dans l'AnimGraph. Chaque AnimBP (héroïne, monstres) **hérite de la classe dédiée** — les variables sont déjà là, rien à câbler.
+- ⚙️ `BaseMonster` expose déjà `GetSpeed()`, `IsMoving()`, `IsDead()`, `IsAttacking()` — on généralise ce pattern.
+
+| Classe | Variables exposées (la source entre parenthèses) |
+|---|---|
+| **`UWDHeroAnimInstance`** | `Speed`, `bIsMoving` (mouvement) · `MoveDirection` (angle déplacement vs orientation — indispensable en top-down twin-stick : elle vise d'un côté en marchant de l'autre → blendspace de strafe) · `bIsFiring` (WeaponComponent) · `ActiveElement`/`ActiveWeaponIndex` (WeaponInventory — poses/tenues par arme) · `bIsCastingSpecial` (SpecialComponent) |
+| **`UWDMonsterAnimInstance`** | `Speed`, `bIsMoving` · `bIsDead` (Health) · `bIsAttacking` (WallAttack — frappe OU buff) · `bIsHit` (HitResponse — hit-react) · `bHasShield` (Health) · `bIsFrozen`, `bIsBurning`, `bIsMarked` (états GameplayTags §11.4) · `bIsJumping` (pattern sauteur), `bIsBurrowed` (pattern fouisseur) |
+
+- Règle : **toute nouvelle mécanique qui change la posture d'un personnage ajoute sa variable ici** — l'AnimBP n'a jamais besoin d'aller la chercher ailleurs.
+- Fallback debug-first : sans squelette/AnimBP (capsules de debug), ces variables existent déjà — les anims se branchent plus tard sans toucher au gameplay.
+
+### 6.6 La partie (stage)
 | Classe | Description simple |
 |---|---|
 | **`AWDStageGameMode`** | **L'assembleur** : spawn héroïne + mur, crée le StageDirector avec le `DA_Stage` + mode choisis, écoute `OnDied` du mur (défaite) et `OnStageCompleted` (victoire → calcul d'étoiles depuis les PV du mur → récompenses × multiplicateur → `Progression` → auto-save). C'est ICI que les composants sont câblés entre eux. |
