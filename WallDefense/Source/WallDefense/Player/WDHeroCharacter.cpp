@@ -4,6 +4,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "UObject/ConstructorHelpers.h"
 
 AWDHeroCharacter::AWDHeroCharacter()
 {
@@ -27,6 +30,35 @@ AWDHeroCharacter::AWDHeroCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraArm);
+
+	// Visible debug body — the collision capsule never renders in game.
+	// Engine basic shapes: nothing to create on the content side (debug-first).
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Capsule.Capsule"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeMesh(TEXT("/Engine/BasicShapes/Cone.Cone"));
+
+	DebugBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugBody"));
+	DebugBody->SetupAttachment(RootComponent);
+	DebugBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CapsuleMesh.Succeeded())
+	{
+		DebugBody->SetStaticMesh(CapsuleMesh.Object);
+		// Engine capsule: radius 50, height 100 -> match the collision capsule (34 x 176).
+		const float Radius = GetCapsuleComponent()->GetScaledCapsuleRadius();
+		const float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+		DebugBody->SetRelativeScale3D(FVector(Radius / 50.f, Radius / 50.f, HalfHeight / 50.f));
+	}
+
+	DebugNose = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugNose"));
+	DebugNose->SetupAttachment(RootComponent);
+	DebugNose->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (ConeMesh.Succeeded())
+	{
+		DebugNose->SetStaticMesh(ConeMesh.Object);
+		// A small cone lying forward at chest height: the facing reads instantly from above.
+		DebugNose->SetRelativeLocation(FVector(45.f, 0.f, 20.f));
+		DebugNose->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
+		DebugNose->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.6f));
+	}
 }
 
 void AWDHeroCharacter::BeginPlay()

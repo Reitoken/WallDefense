@@ -5,7 +5,9 @@
       "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Build\\\\BatchFiles\\\\Build.bat\" WallDefenseEditor Win64 Development -project=\"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -waitmutex)",
       "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Test Started|Test Completed|Result={|TEST COMPLETE|Automation Test Queue Empty|Error:\" | Select-Object -First 40 | ForEach-Object { $_.Line.Trim\\(\\) })",
       "PowerShell(Get-Process UnrealEditor -ErrorAction SilentlyContinue)",
-      "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Test Completed|TEST COMPLETE\" | ForEach-Object { $_.Line.Trim\\(\\) -replace 'LogAutomationController: Display: ','' })"
+      "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Test Completed|TEST COMPLETE\" | ForEach-Object { $_.Line.Trim\\(\\) -replace 'LogAutomationController: Display: ','' })",
+      "Bash(tasklist //FI \"IMAGENAME eq UnrealEditor.exe\")",
+      "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Result=\\\\{Fail|TEST COMPLETE\" | ForEach-Object { $_.Line.Trim\\(\\) })"
     ]
   }
 }

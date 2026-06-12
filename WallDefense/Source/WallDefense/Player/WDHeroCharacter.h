@@ -6,6 +6,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class UStaticMeshComponent;
 
 /**
  * The top-down heroine (free movement, Zelda-like camera).
@@ -50,6 +51,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
 	TObjectPtr<UCameraComponent> Camera;
+
+	/** Debug body (engine capsule mesh): the collision capsule is invisible in game. Replaced by the real mesh later. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
+	TObjectPtr<UStaticMeshComponent> DebugBody;
+
+	/** Debug nose: shows the facing at a glance from above. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
+	TObjectPtr<UStaticMeshComponent> DebugNose;
 
 	/** Higher = snappier turn toward the aim direction. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|Hero", meta = (ClampMin = "0.0"))
