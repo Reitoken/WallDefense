@@ -89,6 +89,9 @@ protected:
 	UFUNCTION()
 	void HandleDied(AActor* Killer);
 
+	UFUNCTION()
+	void HandleKnockback(float Distance);
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UWDMonsterData> MonsterData;

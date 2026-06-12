@@ -70,6 +70,9 @@ private:
 	void LoadFromConfig();
 	void SaveToConfig() const;
 
+	/** In the editor: game-localization PREVIEW only (the editor language NEVER changes). */
+	static void ApplyLanguage(const FString& Culture);
+
 	FString LanguageCulture; // empty = system default
 	float Volumes[3] = { 1.f, 1.f, 1.f };
 	bool bConfigured = false;

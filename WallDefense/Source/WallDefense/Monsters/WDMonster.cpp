@@ -29,8 +29,12 @@ AWDMonster::AWDMonster()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Scene root + mesh CHILD: the hit-response shake jitters the body LOCALLY while
+	// the move pattern keeps driving the actor — the two never fight.
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
-	RootComponent = Body;
+	Body->SetupAttachment(RootComponent);
 	Body->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	Body->SetCollisionObjectType(ECC_WorldDynamic);
 	Body->SetCollisionResponseToAllChannels(ECR_Block);
@@ -91,6 +95,13 @@ void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float
 
 	Health->OnDamaged.AddDynamic(this, &AWDMonster::HandleDamagedForward);
 	Health->OnDied.AddDynamic(this, &AWDMonster::HandleDied);
+	// Knockback recoils along the monster's OWN advance axis: away from the wall, always.
+	HitResponse->OnKnockbackRequested.AddDynamic(this, &AWDMonster::HandleKnockback);
+}
+
+void AWDMonster::HandleKnockback(float Distance)
+{
+	PushBack(Distance);
 }
 
 void AWDMonster::PushBack(float Distance)

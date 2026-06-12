@@ -2,6 +2,7 @@
 #include "GameFramework/GameUserSettings.h"
 #include "Engine/Engine.h"
 #include "Internationalization/Internationalization.h"
+#include "Internationalization/TextLocalizationManager.h"
 #include "Misc/App.h"
 #include "Misc/ConfigCacheIni.h"
 
@@ -27,8 +28,22 @@ void UWDSettingsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	if (!LanguageCulture.IsEmpty())
 	{
-		FInternationalization::Get().SetCurrentCulture(LanguageCulture);
+		ApplyLanguage(LanguageCulture);
 	}
+}
+
+void UWDSettingsSubsystem::ApplyLanguage(const FString& Culture)
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// PIE/editor: preview the GAME's localization only — Pierre's editor stays in its own language.
+		FTextLocalizationManager::Get().EnableGameLocalizationPreview(Culture);
+		return;
+	}
+#endif
+	// Packaged game: the whole process IS the game — switch it for real.
+	FInternationalization::Get().SetCurrentCulture(Culture);
 }
 
 void UWDSettingsSubsystem::LoadFromConfig()
@@ -72,7 +87,7 @@ void UWDSettingsSubsystem::RunFirstLaunchSetup()
 void UWDSettingsSubsystem::SetLanguage(const FString& Culture)
 {
 	LanguageCulture = Culture;
-	FInternationalization::Get().SetCurrentCulture(Culture);
+	ApplyLanguage(Culture);
 	SaveToConfig();
 	OnLanguageChanged.Broadcast(Culture);
 }

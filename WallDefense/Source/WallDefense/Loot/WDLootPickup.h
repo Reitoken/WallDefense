@@ -9,8 +9,9 @@ class UStaticMeshComponent;
 
 /**
  * One drop on the ground (GDD §7): gold, XP or an elemental resource.
- * Lives 10 s then expires, blinking the last 3 s — pick up or keep killing,
- * the real moment-to-moment decision. Pulled in by the heroine's magnet.
+ * Pops out of the dead monster with a small bounce, then lives 10 s and expires,
+ * blinking the last 3 s — pick up or keep killing, the real moment-to-moment decision.
+ * Not collectable while airborne (the bounce scatters them, making the grab earned).
  * No collision: it is pure loot, projectiles fly through it.
  */
 UCLASS(Blueprintable)
@@ -24,6 +25,12 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	void Init(EWDLootType InType, EWDElement InElement, EWDResourceTier InTier, int32 InAmount);
+
+	/** Launches the spawn bounce: a decaying hop from here to the landing spot. */
+	void StartBounceTo(const FVector& LandingSpot);
+
+	/** The magnet only grabs landed drops. */
+	bool IsCollectable() const { return !bBouncing && !bCollected; }
 
 	/** True exactly once — the magnet that wins the race gets the loot. */
 	bool TryCollect();
@@ -48,14 +55,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|Loot", meta = (ClampMin = "0.0"))
 	float BlinkTime = 3.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|Loot", meta = (ClampMin = "0.1"))
+	float BounceDuration = 0.55f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|Loot", meta = (ClampMin = "0.0"))
+	float BounceHeight = 110.f;
+
+	/** The visual sphere — child of a scene root so bobbing stays LOCAL (never moves the actor). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Loot")
 	TObjectPtr<UStaticMeshComponent> Body;
 
 private:
+	UPROPERTY(VisibleAnywhere, Category = "WD|Loot")
+	TObjectPtr<USceneComponent> SceneRoot;
+
 	EWDLootType LootType = EWDLootType::Gold;
 	EWDElement Element = EWDElement::Normal;
 	EWDResourceTier Tier = EWDResourceTier::Fragments;
 	int32 Amount = 1;
+
+	FVector BounceStart = FVector::ZeroVector;
+	FVector BounceLand = FVector::ZeroVector;
+	float BounceTime = 0.f;
 	float Age = 0.f;
+	bool bBouncing = false;
 	bool bCollected = false;
 };

@@ -454,7 +454,7 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
 <details open>
   <summary>Le loot vivant — drops, expiration, aimant <span class="badge b-ok">livré + 2 tests</span></summary>
   <div class="inner">
-    <p>Chaque monstre vaincu éparpille ses drops (GDD §7) : <strong>or</strong> (doré), <strong>XP</strong> (vert), <strong>ressource élémentaire de sa faiblesse</strong> (couleur de l'élément). Les drops <strong>vivent 10 s puis expirent</strong> (clignotement les 3 dernières secondes) — ramasser ou continuer à tuer, la vraie décision.</p>
+    <p>Chaque monstre vaincu éparpille ses drops (GDD §7) <strong>là où il meurt</strong> : <strong>or</strong> (doré), <strong>XP</strong> (vert), <strong>ressource élémentaire de sa faiblesse</strong> (couleur de l'élément). Chaque drop <strong>jaillit du cadavre avec un rebond décroissant</strong> vers son point de chute autour du monstre — et n'est <strong>pas aimantable tant qu'il est en l'air</strong> (la collecte se mérite). Les drops <strong>vivent 10 s puis expirent</strong> (clignotement les 3 dernières secondes) — ramasser ou continuer à tuer, la vraie décision.</p>
     <p>L'<strong>aimant</strong> de l'héroïne (<span class="mono">UWDMagnetComponent</span>) attire tout ce qui entre dans son rayon — rayon qui <strong>grandit avec le niveau du personnage</strong>. Le GameMode comptabilise la course ; en fin de stage le butin est appliqué <strong>× le multiplicateur d'étoiles</strong> (arrondi AU-DESSUS), et <strong>toujours conservé en défaite</strong> (×1) — « perdre fait progresser ».</p>
     <p class="muted">Tables de drops dans les fiches monstres (le Rempart paie mieux, le boss est un jackpot : 60–80 or, 50 XP, 4 fragments garantis). Tier des ressources : Fragments en Normal — Cristaux/Noyaux avec les modes Hard/Enfer (étape 7).</p>
   </div>
@@ -492,13 +492,27 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
   </table>
 </div>
 
+<details open>
+  <summary>Correctifs post-livraison (retours de Pierre) <span class="badge b-ok">corrigés</span></summary>
+  <div class="inner">
+    <table>
+      <tr><th>Bug</th><th>Cause</th><th>Correctif</th></tr>
+      <tr><td>Tous les loots spawnaient au même endroit</td><td>le mesh du pickup était son root : le « bob » en coordonnées relatives téléportait tout vers l'origine du monde</td><td>root scène + mesh enfant ; spawn au point de mort + <strong>rebond décroissant</strong> vers un point de chute autour du cadavre, non-aimantable en l'air</td></tr>
+      <tr><td>Changer la langue traduisait l'éditeur Unreal</td><td><code>SetCurrentCulture</code> change la culture de tout le process (PIE = l'éditeur)</td><td>en éditeur : <strong>prévisualisation de localisation du jeu uniquement</strong> (<code>EnableGameLocalizationPreview</code>) — l'éditeur ne change plus jamais de langue ; en build packagé : vrai changement de culture</td></tr>
+      <tr><td>Monstres poussés À TRAVERS le mur (intouchables)</td><td>le knockback déplaçait l'acteur dans la direction du tir → vers le mur, sans collision</td><td>le knockback est désormais un événement que le monstre route vers son pattern (<code>PushBack</code>) : un coup ne peut que le faire <strong>reculer le long de son axe d'avance, loin du mur</strong> (les boss reculent 4× moins)</td></tr>
+      <tr><td>Hit feel incomplet</td><td>flash seul, hitstop réservé aux faiblesses</td><td>à CHAQUE coup : flash blanc + <strong>secousse locale du mesh</strong> (root scène) + <strong>camera shake</strong> Perlin codé sans asset (petit sur coup normal, fort sur faiblesse, gros sur mort de boss)</td></tr>
+    </table>
+  </div>
+</details>
+
 <h2 id="tester6">Comment tester dans Unreal — Étape 6</h2>
 
 <div class="card">
   <h3>La boucle méta complète (15 minutes)</h3>
   <p>1. <code>L_Sandbox</code> → <strong>GameMode Override</strong> → <code>WDHubGameMode</code> → <strong>Play</strong>. Le <strong>QG</strong> s'affiche (or 0, tout au niveau 1).<br><br>
      ✅ <strong>Lancer le stage</strong> : la map se recharge en mode stage (chargement → fondu → vagues).<br>
-     ✅ <strong>Le loot</strong> : chaque kill éparpille des billes — dorées (or), vertes (XP), colorées (fragments de la faiblesse). Approche-toi : <strong>elles volent vers toi</strong>. Ignore-en : elles clignotent puis disparaissent à 10 s.<br>
+     ✅ <strong>Le loot</strong> : chaque kill fait <strong>jaillir des billes du cadavre, qui rebondissent</strong> autour de lui — dorées (or), vertes (XP), colorées (fragments de la faiblesse). En l'air elles sont inaimantables ; une fois posées, approche-toi : <strong>elles volent vers toi</strong>. Ignore-en : elles clignotent puis disparaissent à 10 s.<br>
+     ✅ <strong>Le hit feel</strong> : chaque coup fait flasher ET trembler le monstre + petite secousse caméra ; coup de faiblesse = grosse secousse + micro-gel + vibration ; les monstres <strong>reculent loin du mur</strong> sous les coups (jamais à travers), les boss bougent à peine.<br>
      ✅ <strong>Pause</strong> : touche <strong>P</strong> (Échap ferme le PIE — en build c'est Échap aussi ; Start à la manette) → Reprendre / Abandonner. Abandonner = défaite mais le butin reste.<br>
      ✅ <strong>Résumé</strong> : à la fin — étoiles, butin × multiplicateur (défaite = ×1, tout conservé), bonus d'or par étoile, XP. « Rejouer » ou « Quartier général ».<br>
      ✅ <strong>Améliorer</strong> : au QG, monte le <strong>lance-flammes</strong> (or + fragments de Feu — farm les monstres rouges !) puis rejoue : les ticks font plus mal (+8 %/niveau). Monte le <strong>mur</strong> : plus de PV et ses skills se débloquent aux niveaux 2/3/4.<br>

@@ -32,6 +32,10 @@ void UWDMagnetComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	for (TActorIterator<AWDLootPickup> It(GetWorld()); It; ++It)
 	{
 		AWDLootPickup* Pickup = *It;
+		if (!Pickup->IsCollectable()) // still bouncing out of the corpse — earn the grab
+		{
+			continue;
+		}
 		const float Distance = FVector::Dist2D(OwnerLocation, Pickup->GetActorLocation());
 
 		if (Distance <= CollectDistance)

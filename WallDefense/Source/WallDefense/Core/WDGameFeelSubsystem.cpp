@@ -1,6 +1,8 @@
 #include "Core/WDGameFeelSubsystem.h"
+#include "Core/WDCameraShake.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 
 void UWDGameFeelSubsystem::Tick(float DeltaTime)
 {
@@ -28,6 +30,19 @@ void UWDGameFeelSubsystem::Hitstop(float DurationSeconds, float TimeDilation)
 	ActiveDilation = FMath::Clamp(TimeDilation, 0.01f, 1.f);
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), ActiveDilation);
 	HitstopRealTimeRemaining = FMath::Max(HitstopRealTimeRemaining, DurationSeconds);
+}
+
+void UWDGameFeelSubsystem::CameraShake(float Scale)
+{
+	if (Scale <= 0.f)
+	{
+		return;
+	}
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PC && PC->PlayerCameraManager)
+	{
+		PC->PlayerCameraManager->StartCameraShake(UWDCameraShake::StaticClass(), Scale);
+	}
 }
 
 void UWDGameFeelSubsystem::Rumble(float Intensity, float DurationSeconds)

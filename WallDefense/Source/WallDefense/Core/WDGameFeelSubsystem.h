@@ -6,7 +6,7 @@
 
 /**
  * Global impact feedback that cannot live on a monster (ArchitectureTechnique §5):
- * hitstop (brief time dilation) and gamepad rumble. Camera shake joins once content exists.
+ * hitstop (brief time dilation), gamepad rumble and camera shake (code-built Perlin jolt).
  * Respects accessibility settings later (intensity scale).
  */
 UCLASS()
@@ -25,6 +25,10 @@ public:
 	/** Gamepad vibration on player 0. */
 	UFUNCTION(BlueprintCallable, Category = "WD|GameFeel")
 	void Rumble(float Intensity, float DurationSeconds);
+
+	/** Camera jolt on player 0 — Scale ~0.3 for a hit, 1 for a weakness hit, 2+ for a boss death. */
+	UFUNCTION(BlueprintCallable, Category = "WD|GameFeel")
+	void CameraShake(float Scale);
 
 private:
 	float HitstopRealTimeRemaining = 0.f;

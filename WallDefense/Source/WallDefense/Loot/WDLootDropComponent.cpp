@@ -42,17 +42,19 @@ void UWDLootDropComponent::SpawnDrops()
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	const FVector DeathSpot = GetOwner()->GetActorLocation();
 	for (const FWDLootRoll& Roll : Rolls)
 	{
-		// Scatter around the corpse so piles never overlap perfectly.
+		// Each drop pops out of the corpse and bounces to its own landing spot around it.
 		const float Angle = Rng.FRandRange(0.f, 2.f * PI);
-		const float Distance = Rng.FRandRange(50.f, 140.f);
-		const FVector Location = GetOwner()->GetActorLocation() * FVector(1.f, 1.f, 0.f)
-			+ FVector(FMath::Cos(Angle) * Distance, FMath::Sin(Angle) * Distance, 40.f);
+		const float Distance = Rng.FRandRange(90.f, 230.f);
+		const FVector LandingSpot(DeathSpot.X + FMath::Cos(Angle) * Distance, DeathSpot.Y + FMath::Sin(Angle) * Distance, 40.f);
+		const FVector SpawnSpot(DeathSpot.X, DeathSpot.Y, FMath::Max(DeathSpot.Z, 60.f));
 
-		if (AWDLootPickup* Pickup = GetWorld()->SpawnActor<AWDLootPickup>(Location, FRotator::ZeroRotator, Params))
+		if (AWDLootPickup* Pickup = GetWorld()->SpawnActor<AWDLootPickup>(SpawnSpot, FRotator::ZeroRotator, Params))
 		{
 			Pickup->Init(Roll.Type, Roll.Element, Roll.Tier, Roll.Amount);
+			Pickup->StartBounceTo(LandingSpot);
 		}
 	}
 }

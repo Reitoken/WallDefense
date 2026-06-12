@@ -7,8 +7,13 @@ AWDLootPickup::AWDLootPickup()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Scene root + mesh CHILD: the bob animates the mesh locally. With the mesh as root,
+	// a relative offset IS a world location — every drop would teleport to the origin.
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	RootComponent = SceneRoot;
+
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
-	RootComponent = Body;
+	Body->SetupAttachment(RootComponent);
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
@@ -40,9 +45,17 @@ void AWDLootPickup::Init(EWDLootType InType, EWDElement InElement, EWDResourceTi
 	}
 }
 
+void AWDLootPickup::StartBounceTo(const FVector& LandingSpot)
+{
+	BounceStart = GetActorLocation();
+	BounceLand = LandingSpot;
+	BounceTime = 0.f;
+	bBouncing = true;
+}
+
 bool AWDLootPickup::TryCollect()
 {
-	if (bCollected)
+	if (!IsCollectable())
 	{
 		return false;
 	}
@@ -62,9 +75,27 @@ void AWDLootPickup::Tick(float DeltaSeconds)
 		return;
 	}
 
-	// Bob and spin so drops read as "pick me up" even as debug spheres.
-	Body->SetRelativeLocation(FVector(0.f, 0.f, 12.f * FMath::Sin(Age * 4.f)));
+	// Always spin: drops read as "pick me up" even as debug spheres.
 	AddActorWorldRotation(FRotator(0.f, 120.f * DeltaSeconds, 0.f));
+
+	if (bBouncing)
+	{
+		// Spawn pop: a decaying double hop from the corpse to the landing spot.
+		BounceTime += DeltaSeconds;
+		const float T = FMath::Min(BounceTime / BounceDuration, 1.f);
+		FVector NewLocation = FMath::Lerp(BounceStart, BounceLand, T);
+		NewLocation.Z = BounceLand.Z + BounceHeight * (1.f - T) * FMath::Abs(FMath::Sin(T * PI * 2.2f));
+		SetActorLocation(NewLocation);
+		if (T >= 1.f)
+		{
+			SetActorLocation(BounceLand);
+			bBouncing = false;
+		}
+		return;
+	}
+
+	// Landed: local bob on the mesh only.
+	Body->SetRelativeLocation(FVector(0.f, 0.f, 12.f * FMath::Sin(Age * 4.f)));
 
 	if (LifeTime - Age <= BlinkTime)
 	{
