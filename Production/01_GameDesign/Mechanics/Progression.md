@@ -23,13 +23,18 @@ STAGE : tuer des monstres → drops (× multiplicateur d'étoiles)
 | **Ressources élémentaires** | améliorer l'arme de l'élément correspondant | un monstre droppe la ressource de SON élément → farmer le bon stage a du sens |
 | **Objets rares** | débloquer équipements et **skins gagnables** | table de drop **par monstre** ; boss = rares garantis |
 
-### Multiplicateur d'étoiles ✅ / 🔶 valeurs
-- Les drops du stage sont **multipliés par les étoiles obtenues** (proposition : 0★ ×1 · 1★ ×1,25 · 2★ ×1,5 · 3★ ×2) + chances de rare accrues.
+### Multiplicateur d'étoiles ✅
+- Seuils ✅ (répartition équitable) : 3★ = 100 % PV mur · 2★ ≥ 66 % · 1★ ≥ 33 % · 0★ < 33 %.
+- Les drops du stage sont **multipliés par les étoiles** ✅ : 0★ ×1 · 1★ ×1,25 · 2★ ×1,5 · 3★ ×2, + chances de rare accrues.
 - **Récompense fixe de fin de stage** selon les étoiles, + **bonus spécial à 3★** (objet rare garanti 🔶).
+
+### Ramassage ✅ (v0.5)
+- Les drops **expirent au sol** (🔶 ~10 s + clignotement) → tension ramasser vs tuer.
+- **Aimant automatique** : les drops volent vers le joueur ; la **portée d'attraction monte avec le niveau du personnage** — c'est LA stat de confort de la montée en XP.
 
 ## 3. Les dépenses ✅ structure / 🔶 valeurs
 
-1. **Améliorer les armes** — ressources élémentaires (de l'élément de l'arme) + or ; paliers de comportements (voir `ArmesEtElements.md` §3). *(Les armes ne s'achètent pas : elles se gagnent sur les boss.)*
+1. **Améliorer les armes** — ressources élémentaires (de l'élément de l'arme) + or ; **niveaux 1 → 100**, palier majeur tous les 5 (voir `ArmesEtElements.md` §3). Courbe de coûts 🔶 : douce jusqu'au ~nv 30 (campagne), exponentielle au-delà (le farm du stage infini prend le relais). *(Les armes ne s'achètent pas : elles se gagnent sur les boss.)*
 2. **Améliorer le mur** ✅ — **PV et défense** contre des monstres de plus en plus forts (or 🔶 + ressources ?).
 3. **Power up le personnage** — niveaux via XP ; 🔶 stats concernées (vitesse, rayon de ramassage, bonus globaux ?).
 4. **Équipements** 🔶 — accessoires passifs à préciser.

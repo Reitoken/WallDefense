@@ -65,17 +65,17 @@ Composition : rotation des familles de monstres par tranches de vagues → toute
 | Tireur | ×0,8 | ×1 (à distance) | moyenne | attaque le mur de loin |
 | **Soigneur** ✅ | ×0,7 | — | moyenne | **soigne les alliés en avançant (aura/pulsation) ; « au contact », soigne au lieu de frapper** → cible prioritaire |
 | **Bouclier-porteur** ✅ | ×0,7 | — | lente | **applique des boucliers aux alliés en avançant et au contact** → cible prioritaire |
+| **Accélérateur** ✅ | ×0,7 | — | moyenne | aura : +40 % vitesse des alliés proches |
 | Boss | ×15 | ×3 | lente | fin de zone, rares garantis, débloque une arme |
 
-- Les monstres support ✅ sont LE levier de pression : les ignorer = se faire envahir.
+- Les monstres support ✅ sont LE levier de pression : les ignorer = se faire envahir. Supports « farfelus » supplémentaires (Ressusciteur, Voleur de loot, Porte-étendard, Diviseur, Brumeux, Kamikaze) : voir `../Mechanics/Bestiaire.md`.
 - Chaque rôle se décline en **variantes élémentaires** (faiblesse/résistances + recoloration).
 
-## 6. Bestiaire par zone ✅ structure
+## 6. Bestiaire par zone ✅
 
-- Bestiaire **abstrait** pour l'instant (`Monstre_01`… : stats, faiblesse/résistances, pattern, skills) — designs et noms remplacés plus tard, cohérents avec le thème de la zone.
-- **5 monstres + 1 boss par zone**, introduits progressivement : 2 types au stage 1, +1 nouveau par stage, les 5 + boss au stage 5.
-- 6 zones = 30 monstres + 6 boss à terme ; variantes/recolorations entre zones pour réduire la production.
-- Patterns disponibles (GDD §6.2) : droit ⚙️, sinusoïdal ⚙️, zigzag, charge-pause, flanqueur, spirale, sauteur, fouisseur 🔶.
+- **Le bestiaire complet existe : `../Mechanics/Bestiaire.md`** — 30 monstres + 6 boss (abstraits), avec multiplicateurs, faiblesses, patterns et skills, prêts pour `DT_Monsters`.
+- Introduction par zone : 2 types au stage 1, +1 nouveau par stage, les 5 + boss au stage 5.
+- La progression joueur côté armes va de **1 à 100 niveaux** (`../Mechanics/ArmesEtElements.md` §3) : la campagne (30 stages) se calibre sur ~nv 1–40 ; les nv 50–100 et leurs capstones sont le moteur du stage infini 🔶 à recaler au playtest.
 
 ## 7. Implémentation (données, pas de code en dur) ✅
 
