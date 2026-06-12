@@ -20,7 +20,7 @@ STAGE : tuer des monstres → drops (× multiplicateur d'étoiles)
 |---|---|---|
 | **Argent (or)** | monnaie universelle : améliorations, déblocages | droppé par tous |
 | **Expérience** | niveaux du personnage | 🔶 stats par niveau à définir |
-| **Ressources élémentaires** | améliorer l'arme de l'élément correspondant | un monstre droppe la ressource de SON élément → farmer le bon stage a du sens |
+| **Ressources élémentaires** | améliorer l'arme de l'élément correspondant | un monstre droppe la ressource de SON élément → farmer le bon stage a du sens. **3 tiers par mode** ✅ v0.6 : **Fragments** (Normal) · **Cristaux** (Hard) · **Noyaux** (Enfer) |
 | **Objets rares** | débloquer équipements et **skins gagnables** | table de drop **par monstre** ; boss = rares garantis |
 
 ### Multiplicateur d'étoiles ✅
@@ -34,7 +34,7 @@ STAGE : tuer des monstres → drops (× multiplicateur d'étoiles)
 
 ## 3. Les dépenses ✅ structure / 🔶 valeurs
 
-1. **Améliorer les armes** — ressources élémentaires (de l'élément de l'arme) + or ; **niveaux 1 → 100**, palier majeur tous les 5 (voir `ArmesEtElements.md` §3). Courbe de coûts 🔶 : douce jusqu'au ~nv 30 (campagne), exponentielle au-delà (le farm du stage infini prend le relais). *(Les armes ne s'achètent pas : elles se gagnent sur les boss.)*
+1. **Améliorer les armes** — ressources élémentaires (de l'élément de l'arme) + or ; **niveaux 1 → 100**, palier majeur tous les 5 (voir `ArmesEtElements.md` §4). **Les tiers structurent la courbe** ✅ v0.6 : nv ~1–40 = **Fragments** (mode Normal), ~41–70 = **Cristaux** (Hard), ~71–100 = **Noyaux** (Enfer) — monter une arme au max impose de maîtriser les 3 modes. Courbe de coûts 🔶 à chiffrer (mandat BAK). *(Les armes ne s'achètent pas : elles se gagnent sur les boss.)*
 2. **Améliorer le mur** ✅ — **PV et défense** contre des monstres de plus en plus forts (or 🔶 + ressources ?).
 3. **Power up le personnage** — niveaux via XP ; 🔶 stats concernées (vitesse, rayon de ramassage, bonus globaux ?).
 4. **Équipements** 🔶 — accessoires passifs à préciser.

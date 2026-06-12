@@ -43,6 +43,20 @@ Stage boss (5e de zone) : densité accrue + boss (×15 PV)
 - Rythme cible : un stage battu en **2–3 tentatives** quand on est à jour.
 - Effet assumé ✅ : en montant, les premiers stages deviennent faciles (re-clear rapide pour farmer les étoiles ×2), les derniers prennent leur sens.
 
+## 3 bis. Modes Normal / Hard / Enfer ✅ (v0.6) / 🔶 valeurs
+
+Les 30 stages sont rejouables en 3 modes ; les multiplicateurs s'appliquent **sur la base du stage** :
+
+| Mode | PV | ATK mur | Résistances élém. | Drops |
+|---|---|---|---|---|
+| Normal | ×1 | ×1 | celles de la fiche | **Fragments** (tier 1), or/XP ×1 |
+| **Hard** | ×4 | ×2,5 | fiche **+1 résistance** supplémentaire 🔶 | **Cristaux** (tier 2), or/XP ×3 |
+| **Enfer** | ×12 | ×6 | fiche **+2 résistances**, résistances à ×0,35 🔶 | **Noyaux** (tier 3), or/XP ×8 |
+
+- Les résistances supplémentaires de chaque monstre en Hard/Enfer sont **fixes par fiche** (pas aléatoires) → la mémorisation reste récompensée ; l'encyclopédie les dévoile en `?????` avant la première rencontre dans le mode.
+- Hard d'un stage se débloque en le finissant en Normal ; Enfer après Hard 🔶.
+- La faiblesse élémentaire ne change jamais de mode en mode (repère fixe du joueur).
+
 ## 4. Stage 31 : la courbe infinie ✅ modèle / 🔶 valeurs
 
 ```

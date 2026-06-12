@@ -1,0 +1,161 @@
+# Architecture technique — Wall Defense
+
+> v1.0 — 12 juin 2026. Document de référence AVANT d'écrire le code.
+> Tout est **C++** ; les Blueprints/assets ne font que du visuel et de la donnée. Préfixe de classes : `WD`.
+
+---
+
+## 1. Les 5 principes
+
+1. **Composants indépendants** — chaque composant fait UNE chose, ne connaît **aucun autre composant**, et peut être modifié/supprimé/remplacé sans rien casser. Le câblage entre composants se fait **au niveau de l'acteur qui les possède** (ou du GameMode), jamais entre eux.
+2. **Communication par délégués** — un composant **expose des événements** (delegates multicast `BlueprintAssignable`) et **ne sait pas qui l'écoute**. Aucune référence « montante » (un composant ne connaît jamais son GameMode, un widget n'est jamais connu du gameplay).
+3. **DataAssets = le pont des données** — le code ne référence **jamais** un asset en dur. Stats, courbes, comportements, VFX, SFX, vidéos, tenues : tout passe par des DataAssets (`TSoftObjectPtr`). Créer/équilibrer du contenu = éditer un asset, zéro code.
+4. **UI event-driven** — les widgets s'abonnent aux délégués et reçoivent les données poussées par le C++ (zéro polling, zéro Tick d'UI). Le Blueprint du widget ne fait QUE le visuel.
+5. **Debug-first** — chaque feature gameplay est visualisable/jouable sans assets (formes de debug colorées par élément). Les refs visuelles des DataAssets sont **optionnelles** : absentes = rendu debug.
+
+## 2. Vue d'ensemble
+
+```
+                          ┌─────────────── DONNÉES (DataAssets / DataTables) ───────────────┐
+                          │  DA_Weapon · DA_Monster · DA_Stage · DA_Wall · DA_Character     │
+                          │  DA_Outfit · DT_DifficultyModes                                 │
+                          └──────────────┬──────────────────────────────┬───────────────────┘
+                                lues par │                              │ lues par
+                                         ▼                              ▼
+┌─ PERSISTANT (GameInstance) ────────────────────┐   ┌─ UNE PARTIE (monde du stage) ─────────────────┐
+│ UWDSaveSubsystem      (5 slots, auto-save)     │   │ AWDStageGameMode  (assemble et arbitre)       │
+│ UWDProgressionSubsystem (or, ressources, XP,   │◄──┤ UWDStageDirector  (vagues depuis DA_Stage)    │
+│   niveaux d'armes, étoiles, découvertes…)      │   │ AWDHeroCharacter  + composants                │
+│ UWDUISubsystem        (pile d'écrans, vidéos)  │   │ AWDWall           + composants                │
+│ UWDDebugSubsystem     (draw debug, CVars)      │   │ AWDMonster ×N     + composants                │
+└───────────────┬────────────────────────────────┘   │ AWDProjectile (pool) · AWDLootPickup ×N       │
+                │ délégués (événements)              └───────────────┬───────────────────────────────┘
+                ▼                                                    │ délégués (événements)
+┌─ UI (widgets C++ → visuel en BP) ──────────────────────────────────▼───────────────────────────────┐
+│ HUD (mur, armes, vague, loot) · Menus (hub, améliorations, encyclopédie, stages, slots) · Histoire │
+└────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## 3. Types partagés (aucune dépendance)
+
+| Type | Contenu | Utilisé par |
+|---|---|---|
+| `EWDElement` | Normal, Feu, Glace, Foudre, Vent, Lumière, Ténèbres (+ couleur de debug associée) | tout le jeu |
+| `EWDDifficulty` | Normal, Hard, Enfer | stages, drops, monstres |
+| `FWDDamageEvent` | montant, élément, instigateur, position d'impact | santé, UI, FX |
+| `FWDElementalProfile` | faiblesse (1), résistances (N) — + résistances bonus Hard/Enfer | monstres, calcul de dégâts |
+| `FWDProjectileBehavior` | enum (perçant, rebond, fragment, autoguidé, zone, propagation…) + paramètres | armes, projectiles |
+| `FWDEffectCue` | `TSoftObjectPtr<UNiagaraSystem>` + `TSoftObjectPtr<USoundBase>` — **les deux optionnels** | tous les effets et sous-effets |
+
+## 4. DataAssets — les ponts de données
+
+| Asset | Description simple | Consommé par |
+|---|---|---|
+| **`UWDWeaponData`** (DA_Weapon_×7) | Une arme : élément, stats de base, courbe 1–100, liste des **paliers** (niveau → comportements `FWDProjectileBehavior`), **Spéciale** (effet, scaling, cooldown, **vidéo** `TSoftObjectPtr<UMediaSource>`), `FWDEffectCue` par effet ET sous-effet, tenue associée (`UWDOutfitData`), coûts par tier | WeaponComponent, SpecialComponent, Progression (coûts), Encyclopédie, Outfit |
+| **`UWDMonsterData`** (DA_Monster_×36) | Une fiche du bestiaire : multiplicateurs (PV/déf/dégâts mur), vitesse, pattern, `FWDElementalProfile`, bouclier, skill support (type d'aura + params), table de drops | Monster (à l'apparition), StageDirector, Encyclopédie |
+| **`UWDStageData`** (DA_Stage_×31) | Un stage : zone, **liste des vagues** (monstres + quantités + timing), récompenses fixes par étoiles, configuration par mode | StageDirector, GameMode, sélection de stage |
+| **`UWDWallData`** | Niveaux du mur : PV/défense par niveau, **skills** (condition + effet + niveau de déblocage), coûts | Wall, Progression, menu d'amélioration |
+| **`UWDCharacterData`** | Stats du perso par niveau d'XP (vitesse, **portée d'aimant**…), courbe d'XP | HeroCharacter, MagnetComponent, Progression |
+| **`UWDOutfitData`** (DA_Outfit_×N) | Une tenue : meshes/matériaux/anims (même squelette). 1 par arme + variantes (skins) | OutfitComponent |
+| **`DT_DifficultyModes`** | Multiplicateurs Normal/Hard/Enfer (stats, drops, tiers) | StageDirector, Monster, LootDrop |
+
+## 5. Subsystems persistants (GameInstance)
+
+| Classe | Description simple | Événements exposés |
+|---|---|---|
+| **`UWDSaveSubsystem`** | Seul maître du disque : 5 slots, auto-save/auto-load, nouvelle partie. Sérialise l'état que lui donne la Progression. | `OnSlotLoaded`, `OnSaved` |
+| **`UWDProgressionSubsystem`** | L'état méta du joueur : or, ressources (élément × tier), XP/niveau, armes débloquées + niveaux, étoiles par stage×mode, niveaux du mur, tenues/skins, découvertes d'encyclopédie, record du stage infini. API : `CanAfford/Spend/Add`, `LevelUpWeapon`, `RegisterDiscovery`… Lit les DataAssets pour les règles ; notifie le SaveSubsystem. | `OnGoldChanged`, `OnResourceChanged`, `OnXPChanged`, `OnWeaponUnlocked`, `OnWeaponLeveledUp`, `OnWallUpgraded`, `OnDiscovery` |
+| **`UWDUISubsystem`** | Pile d'écrans (push/pop), transitions, lecture des **vidéos de Spéciale** (MediaPlayer plein écran skippable). Les widgets ne s'empilent jamais eux-mêmes. | `OnScreenChanged`, `OnVideoFinished` |
+| **`UWDDebugSubsystem`** | Rendu debug centralisé (lignes, formes, couleurs par élément) + CVars (`wd.Debug.Bullets`…). Tous les composants dessinent à travers lui. | — |
+
+## 6. Acteurs et composants gameplay
+
+### 6.1 L'héroïne
+| Classe | Description simple | Composants utilisés |
+|---|---|---|
+| **`AWDHeroCharacter`** | Le pawn top-down : se déplace librement, ne meurt pas. Ne fait QUE bouger — tout le reste est dans ses composants. | WeaponInventory, Special, Magnet, Outfit |
+| **`AWDHeroController`** | Traduit les inputs (Enhanced Input, 2 schémas : souris+clavier / **manette twin-stick privilégiée**) en appels : déplacer, viser, tirer, switcher, Spéciale. | — |
+| **`UWDWeaponInventoryComponent`** | Les 7 emplacements d'armes, l'arme active, le **switch** (suivant/direct). | → `OnWeaponSwitched(ancienne, nouvelle)` |
+| **`UWDWeaponComponent`** | Tire l'arme active : lit son `DA_Weapon` (cadence, type de tir, comportements du niveau actuel), demande les projectiles au pool, applique le cooldown (laser sombre). | → `OnFired`, `OnCooldownChanged` |
+| **`UWDSpecialAbilityComponent`** | La Spéciale : cooldown, scaling par niveau, déclenche l'effet (mêmes comportements projectiles) et demande la vidéo à l'UISubsystem via événement. | → `OnSpecialCast`, `OnSpecialCooldownChanged` |
+| **`UWDMagnetComponent`** | Attire les `AWDLootPickup` dans son rayon (stat du niveau du perso). | → `OnLootCollected(type, quantité)` |
+| **`UWDOutfitComponent`** | Applique la tenue (`DA_Outfit`) liée à l'arme active ; écoute `OnWeaponSwitched` (câblé par le Character). | — |
+
+### 6.2 Le mur
+| Classe | Description simple | Composants utilisés |
+|---|---|---|
+| **`AWDWall`** | L'objectif à défendre : PV global unique, défense %. | Health, WallSkills |
+| **`UWDHealthComponent`** ⚙️ refonte | **LE composant de vie universel** (mur, monstres, tout) : PV, défense en %, **bouclier en couche**, **profil élémentaire** (faiblesse/résistances) ; calcule les dégâts depuis `FWDDamageEvent`. | → `OnDamaged`, `OnHealed`, `OnShieldBroken`, `OnDied` |
+| **`UWDWallSkillsComponent`** | Les skills conditionnels à usage unique (bouclier de départ, onde de répulsion, auto-réparation…) selon `DA_Wall` et le niveau. | → `OnSkillTriggered(skill)` |
+
+### 6.3 Les monstres
+| Classe | Description simple | Composants utilisés |
+|---|---|---|
+| **`AWDMonster`** ⚙️ refonte de `BaseMonster` | Un monstre : initialisé à l'apparition depuis `DA_Monster` × multiplicateurs (stage, mode). | Health, MovePattern, WallAttack, Aura (opt.), LootDrop |
+| **`UWDMovePatternComponent`** | Avance vers le mur selon le pattern de la fiche (droite, sinus, zigzag, charge-pause, flanqueur, spirale, sauteur, fouisseur) — stratégies data-driven, une seule classe. | → `OnReachedWall` |
+| **`UWDWallAttackComponent`** | L'« attaque » au contact/à distance : dégâts au mur OU buff allié (pour les supports). | → `OnAttacked` |
+| **`UWDAuraComponent`** (+ variantes Heal/Shield/Speed/Banner) | Buff de zone en pulsation pendant l'avancée. Indépendant : ajouté seulement aux fiches support. | → `OnPulsed` |
+| **`UWDLootDropComponent`** | À la mort (écoute `OnDied`, câblé par le Monster) : spawn les `AWDLootPickup` selon la table de drops × mode × étoiles en cours. | — |
+
+### 6.4 Projectiles et loot
+| Classe | Description simple |
+|---|---|
+| **`AWDProjectile`** ⚙️ refonte de `Bullet` | Exécute une **liste de `FWDProjectileBehavior`** (perçant, rebond sur les bords, fragments, autoguidé, zone…) — c'est LE moteur générique des 7 armes et de leurs sous-effets. Collision gameplay par composant ; rendu debug par défaut, `FWDEffectCue` si fourni. |
+| **`AWDProjectilePool`** ⚙️ | Le pool existant, étendu aux sous-projectiles (fragments, mini-lasers). |
+| **`AWDLootPickup`** | Un drop au sol : type/quantité, **durée de vie + clignotement**, attiré par le Magnet. → `OnExpired`, `OnCollected` |
+
+### 6.5 La partie (stage)
+| Classe | Description simple |
+|---|---|
+| **`AWDStageGameMode`** | **L'assembleur** : spawn héroïne + mur, crée le StageDirector avec le `DA_Stage` + mode choisis, écoute `OnDied` du mur (défaite) et `OnStageCompleted` (victoire → calcul d'étoiles depuis les PV du mur → récompenses × multiplicateur → `Progression` → auto-save). C'est ICI que les composants sont câblés entre eux. |
+| **`UWDStageDirector`** | Déroule les **vagues** du `DA_Stage` : spawn les monstres (init fiche × stage × mode), compte les vivants. Mode infini : génère les vagues par la courbe au lieu de la liste. → `OnWaveStarted(n)`, `OnWaveCleared(n)`, `OnStageCompleted`, `OnMonsterKilled` |
+| **`AWDMenuGameMode`** ⚙️ | Le hub (améliorations, encyclopédie, sélection) — surtout de l'UI. |
+
+## 7. UI — widgets et binding
+
+**Le pattern de binding (pour TOUT widget)** :
+1. Classe C++ `UWD…Widget : UUserWidget`, dans `NativeConstruct` elle **s'abonne** aux délégués (subsystems via GameInstance, ou composants passés par le GameMode/HUD à la création).
+2. Chaque donnée reçue est **poussée** vers un `BlueprintImplementableEvent` (`OnWallHealthChanged(Percent)`, `OnWeaponSwitched(Icon, Element)`, …).
+3. Le **Blueprint du widget ne fait que le visuel** (anims, layout) à partir de ces événements. Zéro logique en BP, zéro Tick.
+4. Se désabonne dans `NativeDestruct`. Un widget supprimé/remplacé ne casse rien (les délégués perdent juste un abonné).
+
+| Widget | Écoute | Affiche |
+|---|---|---|
+| `UWDHUDWidget` | Wall.Health, WeaponInventory, Special, StageDirector, Magnet | barre du mur, barre d'armes (7), cooldowns, n° de vague, loot ramassé |
+| `UWDSpecialVideoWidget` | UISubsystem | la vidéo de Spéciale (skippable) |
+| `UWDMenuHubWidget` | Progression | or/ressources/XP, accès aux sous-menus |
+| `UWDUpgradeWidget` | Progression (+ DA_Weapon/DA_Wall/DA_Character) | niveaux, coûts, prochain palier |
+| `UWDEncyclopediaWidget` | Progression.OnDiscovery (+ DataAssets) | pages armes/monstres avec **`?????` non découverts** |
+| `UWDStageSelectWidget` | Progression | zones, stages, étoiles par mode, modes débloqués |
+| `UWDSaveSlotsWidget` | SaveSubsystem | 5 slots, nouvelle partie |
+| `UWDStoryWidget` | UISubsystem | écrans d'histoire arcade |
+
+## 8. Flux types (comment tout se parle)
+
+**Tir** : Input → `HeroController` → `WeaponComponent.Fire()` (lit DA_Weapon) → `ProjectilePool` → `AWDProjectile` (behaviors) → hit → `HealthComponent.ApplyDamage(FWDDamageEvent)` → `OnDamaged`/`OnDied` → le Monster réagit (hit-react) ; à la mort `LootDropComponent` spawn les pickups ; le `StageDirector` décompte. *Personne dans cette chaîne ne connaît l'UI — elle écoute.*
+
+**Switch d'arme** : Input → `WeaponInventory.SwitchNext()` → `OnWeaponSwitched` → trois abonnés indépendants réagissent : `WeaponComponent` (recharge les données), `OutfitComponent` (change la tenue), `HUDWidget` (met à jour la barre). Supprimer l'Outfit ne touche ni au tir ni au HUD.
+
+**Spéciale** : Input → `SpecialAbilityComponent` (cooldown ok ?) → `OnSpecialCast` → `UISubsystem` joue la vidéo → à la fin (ou skip), l'effet gameplay s'exécute (behaviors projectiles à l'échelle du niveau).
+
+**Victoire** : `StageDirector.OnStageCompleted` → `StageGameMode` lit les PV du mur → étoiles → `Progression.ApplyRunRewards(loot run × multiplicateur)` → `OnGoldChanged`/`OnResourceChanged` (l'UI du résumé s'anime) → `SaveSubsystem.AutoSave()`.
+
+## 9. Règles de modularité (le contrat)
+
+- Un composant n'inclut JAMAIS le header d'un autre composant ; il ne connaît que les **types partagés** (§3) et **son** DataAsset.
+- Toute communication sortante = **délégué**. Toute configuration entrante = **DataAsset ou paramètres à l'init**.
+- Le câblage (qui écoute qui) vit dans **l'acteur propriétaire** ou le **GameMode** — un seul endroit à lire pour comprendre les liens, un seul à modifier pour remplacer un composant.
+- Chaque composant doit fonctionner **dans une map de test vide** avec le DebugSubsystem (critère d'indépendance).
+- Tout asset = `TSoftObjectPtr` dans un DataAsset. Référence absente → rendu debug, jamais de crash.
+
+## 10. Ordre d'implémentation proposé
+
+1. **Fondations** : types partagés (§3), `UWDHealthComponent` (élémentaire + bouclier), `UWDDebugSubsystem`.
+2. **Héroïne top-down** : Character + Controller (2 schémas d'input) + caméra — en capsule de debug.
+3. **Armes debug-first** : `DA_Weapon` + `WeaponComponent` + `AWDProjectile` à behaviors + pool — le fusil d'abord, puis 1 palier de chaque type de behavior (perçant, rebond, fragment, autoguidé, zone).
+4. **Monstres** : `AWDMonster` + patterns + `DA_Monster` (zone 1) + `UWDStageDirector` + `DA_Stage` (stages 1–5).
+5. **Le mur + la boucle** : `AWDWall`, victoire/défaite, étoiles, `AWDStageGameMode`.
+6. **Méta** : pickups + magnet, `Progression`, `Save` (5 slots), menu hub minimal.
+7. **Le reste** : Spéciale + vidéos, modes Hard/Enfer, encyclopédie, tenues, skills du mur, histoire.
+
+→ Fin de l'étape 5 = **boucle de jeu complète jouable en debug**. C'est le premier jalon.

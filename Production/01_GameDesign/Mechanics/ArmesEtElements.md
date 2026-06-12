@@ -1,7 +1,7 @@
 # Les 7 armes élémentaires
 
-> v0.3 — 12 juin 2026. Référencé par le GDD §5 et §10.
-> **Une arme par élément, un seul switch ✅ confirmé.** Niveaux **1 → 100** : un changement à chaque niveau, un **gros palier tous les 5 niveaux**.
+> v0.4 — 12 juin 2026. Référencé par le GDD §5 et §10.
+> **Une arme par élément, un seul switch ✅.** Niveaux **1 → 100** : un changement à chaque niveau, un **gros palier tous les 5 niveaux**. Chaque arme a une **Spéciale active** (✅ v0.6) avec cooldown et **vidéo de déclenchement**.
 
 ---
 
@@ -15,12 +15,12 @@
 | Foudre | **jaune** ✅ | chaînes entre ennemis |
 | Vent | **turquoise** ✅ | tornades, repoussement, regroupement |
 | Lumière | **blanche** ✅ | frappes de zone célestes, anti-bouclier |
-| Ténèbres | **mauve** ✅ | laser, marque, drain |
+| Ténèbres | **mauve** ✅ | laser perforant à rebonds, multi-hit |
 
-- Les couleurs sont **la** signalétique du jeu : debug des projectiles, VFX, icônes, ressources, faiblesses affichées.
+- Les couleurs sont **la** signalétique du jeu : debug des projectiles, VFX, icônes, ressources, faiblesses affichées (et yeux lumineux des monstres, `Bestiaire.md` §0).
 - **Pas de table élémentaire globale** ✅ : chaque monstre définit SA faiblesse et SES résistances.
 
-## 2. Fiches d'armes ✅ types (v0.5 : laser → Ténèbres, tornade → Vent, frappe céleste → Lumière)
+## 2. Fiches d'armes ✅ types
 
 | Élément | Arme | Profil de tir | Effet niveau 1 |
 |---|---|---|---|
@@ -30,15 +30,35 @@
 | Foudre | **Arc électrique** | tir précis, cadence moyenne | **Chaîne** sur 1 ennemi proche (50 % des dégâts) |
 | Vent | **Canon à tornade** | projectile tornade lent, perçant | **Repousse** les ennemis légers sur son passage |
 | Lumière | **Frappe céleste** | colonne de lumière sur la zone visée, cadence lente | **×2 dégâts sur les boucliers** |
-| Ténèbres | **Rayon laser sombre** | faisceau continu | **Marque** : +15 % dégâts subis, 3 s |
+| Ténèbres | **Laser sombre** ✅ refonte v0.6 | rayon rapide qui **transperce toute la ligne** et **rebondit sur les bords** | dégâts faibles par cible mais multi-hit ; **cooldown de tir élevé** → switcher pendant le cooldown |
 
-## 3. Évolution 1 → 100 ✅ structure / 🔶 valeurs
+### Le Laser sombre en détail ✅ (refonte v0.6)
+- Le rayon **transperce tous les ennemis sur sa ligne** (dégâts plus faibles par cible).
+- Il **rebondit sur les bords du terrain** à vitesse élevée → frappe plusieurs fois les groupes.
+- **Cadence lente** (cooldown de tir nettement plus élevé que les autres armes) : on tire, on **switche** sur une autre arme pendant le cooldown, on revient — l'arme « ponctuation » du kit.
+- Améliorations : nombre de rebonds, **épaisseur** et force du rayon, **mini-lasers autoguidés** qui se dirigent seuls vers les monstres.
 
-**Règle générale (tous niveaux)** : chaque niveau donne **+3 % de dégâts** (cumulatif ≈ ×19 au nv 100) et une **micro-amélioration** de l'effet signature (durée, %, portée). **Tous les 5 niveaux : palier majeur** (tableaux ci-dessous, 20 paliers par arme). Coût : ressources élémentaires + or, courbe 🔶 (`Progression.md`).
+## 3. La Spéciale ✅ (v0.6)
 
-Le **palier 100 est un « capstone »** : une capacité périodique spectaculaire, pensée pour les grosses vagues du **mode infini**.
+- **Chaque arme possède une Spéciale active** : déclenchée par le joueur, **cooldown long** (🔶 ~60–90 s).
+- **Son effet = celui du palier 100**, mais **plus faible à bas niveau** : la Spéciale **scale avec le niveau de l'arme** et atteint sa pleine puissance au nv 100 (qui réduit aussi son cooldown).
+- **Vidéo de Spéciale** ✅ : au déclenchement, une **courte cinématique** est jouée (à la *Epic Seven*), skippable 🔶 — la **référence vidéo vit dans le DataAsset de l'arme** (`DA_Weapon`).
 
-### 3.1 Fusil automatique (Normal) 🔶
+| Arme | Spéciale (pleine puissance au nv 100) | À bas niveau |
+|---|---|---|
+| Fusil | **Pluie de plomb** : salve à 360° qui transperce tout | salve partielle (90°), perçant limité |
+| Lance-flammes | **Mer de feu** : anneau de feu autour du joueur (5 s) | demi-anneau, 2 s |
+| Canon givrant | **Ère glaciaire** : gèle tous les ennemis à l'écran (2 s) | gèle les ennemis proches (1 s) |
+| Arc électrique | **Orage** : la foudre frappe chaque ennemi à l'écran | frappe 1 ennemi (puis 2, 4, 8… avec le niveau) |
+| Canon à tornade | **Ouragan** : tornade géante qui traverse le terrain | tornade moyenne, demi-terrain |
+| Frappe céleste | **Aube** : vague de lumière qui traverse tout et **brise tous les boucliers** | vague courte, endommage les boucliers |
+| Laser sombre | **Éclipse** : laser colossal, 10 rebonds + nuée de mini-lasers | laser épais, 3 rebonds, sans nuée |
+
+## 4. Évolution 1 → 100 ✅ structure / 🔶 valeurs
+
+**Règle générale** : chaque niveau donne **+3 % de dégâts** et une micro-amélioration de l'effet signature ; **tous les 5 niveaux : palier majeur**. La **Spéciale** scale en continu avec le niveau. Coûts : ressources élémentaires **par tiers de mode** (Normal/Hard/Enfer, voir `Progression.md`) + or.
+
+### 4.1 Fusil automatique (Normal) 🔶
 
 | Niveau | Palier |
 |---|---|
@@ -61,9 +81,9 @@ Le **palier 100 est un « capstone »** : une capacité périodique spectaculair
 | 85 | Transperce 7 |
 | 90 | Fragments ×6 |
 | 95 | Surcadence cumul ×10 |
-| 100 | **Pluie de plomb** : toutes les 5 s, une salve à 360° qui transperce tout |
+| 100 | **Spéciale max — Pluie de plomb** (360°, transperce tout) + cooldown de Spéciale réduit |
 
-### 3.2 Lance-flammes (Feu) 🔶
+### 4.2 Lance-flammes (Feu) 🔶
 
 | Niveau | Palier |
 |---|---|
@@ -86,9 +106,9 @@ Le **palier 100 est un « capstone »** : une capacité périodique spectaculair
 | 85 | Dégâts de brûlure +50 % |
 | 90 | Cumuls ×5 |
 | 95 | Flaques durée ×2 |
-| 100 | **Mer de feu** : toutes les 30 s, un anneau de feu entoure le joueur pendant 5 s |
+| 100 | **Spéciale max — Mer de feu** (anneau complet, 5 s) + cooldown réduit |
 
-### 3.3 Canon givrant (Glace) 🔶
+### 4.3 Canon givrant (Glace) 🔶
 
 | Niveau | Palier |
 |---|---|
@@ -111,9 +131,9 @@ Le **palier 100 est un « capstone »** : une capacité périodique spectaculair
 | 85 | +25 % dégâts sur cibles ralenties |
 | 90 | 2 touches = gel |
 | 95 | Pics ×5 |
-| 100 | **Ère glaciaire** : toutes les 30 s, gèle tous les ennemis à l'écran (2 s) |
+| 100 | **Spéciale max — Ère glaciaire** (gel global, 2 s) + cooldown réduit |
 
-### 3.4 Arc électrique (Foudre) 🔶
+### 4.4 Arc électrique (Foudre) 🔶
 
 | Niveau | Palier |
 |---|---|
@@ -136,9 +156,9 @@ Le **palier 100 est un « capstone »** : une capacité périodique spectaculair
 | 85 | Chaîne 9 |
 | 90 | Surtension +15 %/rebond |
 | 95 | Paralysie 0,5 s |
-| 100 | **Orage** : toutes les 20 s, la foudre frappe chaque ennemi à l'écran |
+| 100 | **Spéciale max — Orage** (frappe chaque ennemi à l'écran) + cooldown réduit |
 
-### 3.5 Canon à tornade (Vent) 🔶
+### 4.5 Canon à tornade (Vent) 🔶
 
 | Niveau | Palier |
 |---|---|
@@ -161,9 +181,9 @@ Le **palier 100 est un « capstone »** : une capacité périodique spectaculair
 | 85 | Persiste 4 s |
 | 90 | Les tornades **dévient les projectiles ennemis** |
 | 95 | **5 tornades** |
-| 100 | **Ouragan** : toutes les 30 s, une tornade géante traverse le terrain |
+| 100 | **Spéciale max — Ouragan** (tornade géante sur tout le terrain) + cooldown réduit |
 
-### 3.6 Frappe céleste (Lumière) 🔶
+### 4.6 Frappe céleste (Lumière) 🔶
 
 | Niveau | Palier |
 |---|---|
@@ -186,67 +206,66 @@ Le **palier 100 est un « capstone »** : une capacité périodique spectaculair
 | 85 | +25 % cadence |
 | 90 | Jugement +40 % |
 | 95 | **5 colonnes** |
-| 100 | **Aube** : toutes les 30 s, une vague de lumière traverse le terrain et **brise tous les boucliers** |
+| 100 | **Spéciale max — Aube** (vague totale, brise tous les boucliers) + cooldown réduit |
 
-### 3.7 Rayon laser sombre (Ténèbres) 🔶
+### 4.7 Laser sombre (Ténèbres) 🔶 — refonte v0.6
 
 | Niveau | Palier |
 |---|---|
-| 5 | Marque +20 % |
-| 10 | Le faisceau **perce 2** ennemis alignés |
-| 15 | Marque 5 s |
-| 20 | La mort d'un marqué **propage la marque** (1 voisin) |
-| 25 | Perce 3 |
-| 30 | Marque +25 % |
-| 35 | **Canalisation** : +5 % dégâts/s en maintenant le tir (max +50 %) |
-| 40 | Propagation : 2 voisins |
-| 45 | Perce 5 |
-| 50 | **Drain** : les dégâts sur marqués **soignent le mur** (1 %) |
-| 55 | Marque +30 % |
-| 60 | Canalisation max +75 % |
-| 65 | Perce 7 |
-| 70 | Propagation : 3 voisins |
-| 75 | Marque 8 s |
-| 80 | Drain 2 % |
-| 85 | +25 % dégâts |
-| 90 | Perce tout l'alignement |
-| 95 | Canalisation max +100 % |
-| 100 | **Éclipse** : toutes les 30 s, marque TOUS les ennemis à l'écran |
+| 5 | **+1 rebond** (2 au total) |
+| 10 | Épaisseur du rayon +30 % |
+| 15 | **Montée en puissance** : +20 % de dégâts à chaque rebond effectué |
+| 20 | **2 mini-lasers autoguidés** tirés avec le rayon (30 % des dégâts) |
+| 25 | +1 rebond (3) |
+| 30 | Cooldown de tir −15 % |
+| 35 | Épaisseur +30 % |
+| 40 | Mini-lasers ×3 |
+| 45 | +1 rebond (4) |
+| 50 | **Résonance** : chaque ennemi traversé augmente les dégâts du prochain rayon de 5 % |
+| 55 | Mini-lasers ×4 |
+| 60 | Cooldown −15 % |
+| 65 | +1 rebond (5) |
+| 70 | Épaisseur +40 % (rayon massif) |
+| 75 | Les mini-lasers transpercent 2 ennemis |
+| 80 | +1 rebond (6) |
+| 85 | Dégâts +25 % |
+| 90 | Mini-lasers ×6 |
+| 95 | Cooldown −20 % |
+| 100 | **Spéciale max — Éclipse** (laser colossal, 10 rebonds + nuée de mini-lasers) + cooldown réduit |
 
-## 4. Switch et déblocage ✅ confirmé
+## 5. Switch et déblocage ✅ confirmé
 
-- **Un seul switch** ✅. 🔶 Contrôles : molette + touches 1–7 (clavier), roue radiale (manette).
+- **Un seul switch** ✅. Contrôles ✅ (GDD §4) : souris = visée + bouton tir + bouton arme suivante ; clavier = touches proches de ZQSD/WASD pour changer d'arme ; **manette = cible privilégiée** (twin-stick, roue/gâchettes).
 - Toutes les armes possédées sont accessibles en combat (pas de loadout).
 - **Ordre de déblocage confirmé** ✅ : départ Normal, puis par boss de zone : Feu → Glace → Foudre → Vent → Lumière → Ténèbres.
 
-## 5. Approche technique ✅
+## 6. Approche technique ✅
 
-### 5.1 Niagara et collisions ✅ confirmé
+### 6.1 Niagara et collisions ✅ confirmé
 **Aucune détection d'impact dans Niagara** ✅ — ses collisions sont cosmétiques. Les dégâts sont déterministes, dans le gameplay.
 
-### 5.2 Debug-first ✅ (décision v0.5)
-**Tout le comportement des projectiles doit être visualisable en debug pur, sans mesh ni VFX** :
-- trajectoires (lignes), projectiles (sphères/formes), impacts (points), zones (cercles), chaînes/propagations (segments entre cibles) — **colorés par élément** ;
+### 6.2 Debug-first ✅
+**Tout le comportement des projectiles est visualisable en debug pur, sans mesh ni VFX** :
+- trajectoires (lignes), projectiles (sphères/formes), impacts (points), zones (cercles), chaînes/rebonds (segments) — **colorés par élément** ;
 - activable par console (ex. `wd.Debug.Bullets 1`) ;
-- c'est le rendu de référence des **tests gameplay** : le comportement réel de l'arme (perçants, splits, spawns secondaires) se lit directement ;
-- la **couche visuelle vient après, via DataAssets** : refs Niagara optionnelles dans `DA_Weapon` pour le projectile **principal** ET chaque **sous-effet** (fragments, pics, orbes…). Pas de ref = rendu debug.
+- c'est le rendu de référence des **tests gameplay** ;
+- la **couche visuelle vient après, via DataAssets** ✅ : pour le projectile **principal** ET pour **chaque sous-effet** (fragments, pics, orbes, mini-lasers…), le DataAsset prévoit une **ref Niagara optionnelle ET une ref sonore optionnelle** ✅ v0.6. Pas de ref = rendu debug.
 
-### 5.3 Architecture : le gameplay détecte, Niagara décore
+### 6.3 Architecture : le gameplay détecte, Niagara décore
 
 | Type de tir | Détection des dégâts | Visuel (après coup) |
 |---|---|---|
-| Continu (lance-flammes, laser sombre) | traces/overlaps répétés en C++ | faisceau/cône en boucle + impacts |
-| Projectile (fusil, givrant, tornade, arc) | ⚙️ `Bullet` + `BulletPool`, collision par composant | trail + impact à l'événement de hit |
+| Continu (lance-flammes) | traces/overlaps répétés en C++ | cône en boucle + impacts |
+| Projectile (fusil, givrant, tornade, arc, mini-lasers) | ⚙️ `Bullet` + `BulletPool`, collision par composant | trail + impact à l'événement de hit |
+| Rayon à rebonds (laser sombre) | line traces successives (segments réfléchis sur les bords) | beam segmenté suivant les traces |
 | Zone désignée (frappe céleste) | requête de zone au point visé (délai puis dégâts) | télégraphe au sol + colonne |
 
-Les comportements d'évolution (perçant, fragments, spawns, propagation) vivent dans le **gameplay**, paramétrés par `DA_Weapon`.
+### 6.4 Systèmes Niagara maîtres
+- `NS_Muzzle`, `NS_Trail`, `NS_Impact` + **User Parameters** (couleur d'élément, intensité, échelle, module additionnel). Variante dédiée seulement si visuellement unique (chaîne d'éclairs, colonne céleste, beam à rebonds).
 
-### 5.4 Systèmes Niagara maîtres
-- `NS_Muzzle`, `NS_Trail`, `NS_Impact` + **User Parameters** (couleur d'élément, intensité, échelle, module additionnel). Variante dédiée seulement si visuellement unique (chaîne d'éclairs, colonne céleste).
+### 6.5 Une arme = des données
+- `DA_Weapon` : élément, stats de base, **courbe 1–100**, **liste des paliers**, **Spéciale** (effet, scaling, cooldown, **vidéo** ✅), refs visuelles/sonores **optionnelles par effet et sous-effet**, tenue associée, coûts par tier.
+- Le `WeaponComponent` ⚙️ lit tout ; l'**encyclopédie** (GDD §2.3) se génère depuis ces mêmes données (avec dévoilement progressif ✅).
 
-### 5.5 Une arme = des données
-- `DA_Weapon` : élément, stats de base, **courbe 1–100** (+3 %/nv), **liste des paliers** (enum comportement + paramètres), refs visuelles/sonores **optionnelles** (debug-first), coûts.
-- Le `WeaponComponent` ⚙️ lit tout ; l'**encyclopédie** (GDD §2.3) se génère depuis ces mêmes données.
-
-### 5.6 SFX en couches
-- **MetaSounds** : corps mécanique + couche élémentaire. 7 armes ≈ 1 base + 7 couches.
+### 6.6 SFX en couches
+- **MetaSounds** : corps mécanique + couche élémentaire ; chaque sous-effet peut avoir son propre son ✅.

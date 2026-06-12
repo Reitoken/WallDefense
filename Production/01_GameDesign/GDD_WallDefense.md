@@ -1,6 +1,6 @@
 # Wall Defense — Game Design Document
 
-> **Statut** : v0.5 — 12 juin 2026 — intégration des commentaires BAK (2e passe).
+> **Statut** : v0.6 — 12 juin 2026 — intégration des commentaires BAK (3e passe).
 > ✅ = décidé · 🔶 = à approfondir/valider · ⚙️ = existe déjà dans le code.
 > Ce document est la **référence unique** des règles du jeu. Documents détaillés : `Mechanics/` et `Balancing/`.
 
@@ -9,9 +9,9 @@
 ## 1. Vision
 
 ### 1.1 Pitch ✅
-Un **tower defense incarné**, vue **top-down (Zelda-like)** : le joueur se déplace librement sur le terrain et défend son **mur** contre des vagues de monstres. Il possède **7 armes — une par élément** (Normal, Feu, Glace, Foudre, Vent, Lumière, Ténèbres) et **switche** entre elles : chaque monstre est **faible à un élément** et **résistant à un ou plusieurs autres** — connaître son bestiaire et switcher au bon moment, c'est tout le skill.
+Un **tower defense incarné**, vue **top-down (Zelda-like)** : des **monstres d'une autre dimension envahissent la Terre**, et une **jeune héroïne** les arrête en cherchant des armes pour les exterminer ✅. Elle se déplace librement sur le terrain et défend son **mur** contre les vagues. Elle possède **7 armes — une par élément** (Normal, Feu, Glace, Foudre, Vent, Lumière, Ténèbres) et **switche** entre elles : chaque monstre est **faible à un élément** et **résistant à un ou plusieurs autres** — connaître son bestiaire et switcher au bon moment, c'est tout le skill.
 
-Chaque arme évolue jusqu'au **niveau 100** : un changement à chaque niveau, un **gros palier de comportement tous les 5 niveaux**. Progression par le loot ; **30 stages** (6 zones de 5) + un **stage infini**.
+Chaque arme évolue jusqu'au **niveau 100** (gros palier tous les 5 niveaux) et possède une **Spéciale active** avec cinématique. Progression par le loot ; **30 stages** (6 zones de 5) rejouables en **Normal / Hard / Enfer** + un **stage infini**. Le mantra : **try and become stronger** — essayer, farmer, évoluer, revenir.
 
 **Un simple jeu premium à la vente** : pas de classement en ligne, pas de battle pass — aucune feature online. ✅
 
@@ -35,7 +35,7 @@ MENU (hub)
  ├─ AMÉLIORER : armes (ressources élémentaires + or), personnage (XP/or), MUR (PV/défense/skills)
  ├─ DÉBLOQUER : skins et équipements (objets rares + or) — les armes, elles, se gagnent sur les boss
  ├─ ENCYCLOPÉDIE : consulter armes, effets, coûts d'évolution, monstres rencontrés
- └─ JOUER : choisir un stage déjà atteint (progression linéaire)
+ └─ JOUER : choisir un stage déjà atteint (progression linéaire) + son MODE (Normal/Hard/Enfer)
       └─> STAGE : vagues de monstres → ils attaquent le mur
            ├─ VICTOIRE → étoiles selon PV du mur → récompenses × étoiles → stage suivant
            │             (boss de zone vaincu → NOUVELLE ARME débloquée)
@@ -63,10 +63,18 @@ MENU (hub)
 - **Multiplicateur de drops** du stage ✅ : 0★ ×1 · 1★ ×1,25 · 2★ ×1,5 · 3★ ×2, + chances de drop rare accrues.
 - **3 étoiles = bonus supplémentaire** (🔶 objet rare garanti ?).
 
-### 2.3 Histoire, guide et encyclopédie ✅ principe / 🔶 contenu
-- **Petite histoire « arcade »** : un contexte léger raconté en avançant dans les zones (écrans courts entre les stages clés — intro de zone, victoire de boss). Pas de cinématiques lourdes ; quelques lignes + illustrations 🔶 ton et trame à écrire.
+### 2.3 Histoire, guide et encyclopédie ✅
+- **La trame** ✅ : *des monstres d'une autre dimension envahissent la Terre ; une jeune héroïne tente de les arrêter en cherchant des armes pour les exterminer.* Racontée en « arcade » : écrans courts entre les stages clés (intro de zone, victoire de boss), quelques lignes + illustrations. 🔶 Détail de l'écriture défini plus tard.
 - **Guide de début de partie** : un tutoriel basique qui explique le cœur (tirer, switcher, améliorer une arme, le mur). Court, contextuel, skippable.
-- **Encyclopédie** consultable au menu : pages des **armes** (effets actuels, prochain palier, **objets nécessaires** pour évoluer) et 🔶 pages des **monstres** rencontrés (faiblesse/résistances découvertes).
+- **Encyclopédie** consultable au menu, avec **dévoilement progressif** ✅ : elle garde une **part de mystère** — les entrées non découvertes affichent des `?????` pour montrer qu'une progression est possible (paliers d'armes pas encore atteints, monstres pas encore croisés, faiblesses pas encore testées).
+
+### 2.4 Modes de difficulté : Normal / Hard / Enfer ✅ (v0.6)
+Les 30 stages sont **rejouables en 3 modes** :
+- **Hard** d'un stage : débloqué en le finissant en Normal ; **Enfer** : en le finissant en Hard 🔶.
+- Les monstres y sont **plus résistants** (stats accrues + **résistances élémentaires supplémentaires**) et les **drops meilleurs**.
+- **Chaque mode droppe son tier de matériaux** ✅ : les ressources élémentaires existent en 3 tiers — **Fragments** (Normal), **Cristaux** (Hard), **Noyaux** (Enfer) — nécessaires respectivement aux niveaux d'armes ~1–40, ~41–70, ~71–100. **Les modes structurent donc la progression 1–100.**
+- Étoiles comptées **par mode** 🔶 (3 × 30 × 3 = 270 étoiles potentielles).
+- Valeurs des multiplicateurs : `Balancing/MonsterScaling.md` §Modes.
 
 ---
 
@@ -85,13 +93,18 @@ MENU (hub)
   - **Onde de répulsion** : repousse une fois les ennemis au contact du mur (temporise) ;
   - 🔶 autres idées : auto-réparation sous 25 % (une fois), riposte (dégâts de contact), herse (ralentit la zone proche du mur).
 - Défaite = mur détruit. PV restants = étoiles (§2.2).
-- 🔶 PV global unique ou par segments ? Réparation en cours de stage ?
+- **PV global unique** ✅ (décision v0.6, mandat BAK) : une seule barre, lisible d'un coup d'œil en top-down, cohérente avec les seuils d'étoiles. Les segments ajouteraient de la gestion sans enrichir le choix du joueur (le positionnement compte déjà via les patterns).
+- **Pas de réparation en cours de stage** ✅ : chaque PV perdu compte (tension des étoiles) ; la « réparation » existe sous forme de **skills conditionnels** (auto-réparation une fois sous 25 %) et le mur revient à 100 % à chaque début de stage.
 
 ---
 
 ## 4. Le personnage
 
+- **Une jeune héroïne** ✅ (cf. la trame, §2.3) — à concevoir skinnable dès le départ.
 - **Tire** sur les vagues avec ses armes (§5). Ne meurt pas — seul le mur compte ✅.
+- **Contrôles ✅ (v0.6), deux schémas, manette privilégiée** :
+  - **Manette (cible principale)** : twin-stick — stick gauche déplace, stick droit oriente/vise, gâchette tire, boutons/roue pour changer d'arme.
+  - **Clavier + souris** : la souris oriente le personnage et vise ; **un bouton pour tirer, un bouton pour passer à l'arme suivante** ; touches proches de ZQSD/WASD pour le changement d'arme direct.
 - **Skinnable par construction** ✅ — et v0.5 : **une tenue spéciale par arme** (§9.2).
 - **Architecture par DataAssets** ✅ : tous les éléments graphiques (meshes, matériaux, VFX, sons, animations, icônes) regroupés dans des **DataAssets dédiés** (`DA_CharacterVisuals`, `DA_CharacterAudio`…), consommés par le code. Rien d'éparpillé dans les Blueprints.
 - **Ramassage du loot** ✅ : les drops s'attirent automatiquement vers le joueur (**aimant/auto-aim**) ; la **portée d'attraction augmente avec le niveau du personnage**. Les **drops disparaissent avec le temps** → vraie décision moment-à-moment : ramasser ou continuer à tuer. 🔶 durées (proposition : 10 s de vie + clignotement les 3 dernières).
@@ -106,7 +119,8 @@ MENU (hub)
 ### 5.1 Principes ✅
 - **Une arme par élément, 7 armes, un seul switch** ✅ confirmé.
 - **Niveau 1 → 100 par arme** ✅ : **chaque niveau apporte un changement** (stats + micro-bonus), et **tous les 5 niveaux un GROS palier** ajoute/upgrade un comportement. 20 paliers majeurs par arme — durée de vie, curiosité d'amélioration, et la puissance nécessaire aux grosses vagues du mode infini.
-- Comportements paramétrables par arme (data-driven) : perçant, fragments, **spawn de projectiles secondaires à l'impact**, zones au sol, propagation…
+- **La Spéciale** ✅ (v0.6) : chaque arme a une **capacité active à cooldown** dont l'effet est celui du palier 100, **plus faible à bas niveau** (elle scale avec le niveau de l'arme). Son déclenchement joue une **courte cinématique vidéo** (à la *Epic Seven*), référencée dans le DataAsset de l'arme. Détail : `Mechanics/ArmesEtElements.md` §3.
+- Comportements paramétrables par arme (data-driven) : perçant, fragments, **spawn de projectiles secondaires à l'impact**, zones au sol, propagation, rebonds, autoguidage…
 - Conséquence assumée : les premiers stages deviennent faciles (farm), les derniers prennent leur sens.
 
 ### 5.2 Les armes ✅ types / 🔶 valeurs
@@ -119,9 +133,7 @@ MENU (hub)
 | **Foudre** 🟡 | Arc électrique | tir précis | **Chaîne** sur 1 ennemi proche |
 | **Vent** 🟦 | **Canon à tornade** ✅ v0.5 | projectile tornade lent et perçant | **Repousse** les ennemis légers sur son passage |
 | **Lumière** ⚪ | **Frappe céleste** ✅ v0.5 | colonne de lumière qui s'abat sur la zone visée | **×2 dégâts sur les boucliers** |
-| **Ténèbres** 🟣 | **Rayon laser sombre** ✅ v0.5 | faisceau continu | **Marque** : +15 % dégâts subis, 3 s |
-
-*(v0.5 : le laser passe aux Ténèbres ✅ ; le Vent reçoit la tornade — plus lisible et plus « vent » que le fusil à rafale ; la Lumière frappe depuis le ciel.)*
+| **Ténèbres** 🟣 | **Laser sombre** ✅ refonte v0.6 | rayon rapide qui **transperce toute la ligne** et **rebondit sur les bords** du terrain | dégâts faibles par cible, multi-hit ; **cooldown de tir élevé** → on switche pendant le cooldown ; évolutions : rebonds, épaisseur, **mini-lasers autoguidés** |
 
 ### 5.3 Déblocage ✅
 - Départ : **Normal**. Chaque boss de zone débloque l'arme suivante. **Ordre confirmé** ✅ : Feu → Glace → Foudre → Vent → Lumière → Ténèbres.
@@ -158,7 +170,9 @@ MENU (hub)
 1. **Ligne droite** ⚙️ · 2. **Sinusoïdal** ⚙️ · 3. **Zigzag brusque** · 4. **Charge-pause** · 5. **Flanqueur** (longe les bords) · 6. **Spirale** · 7. **Sauteur** (bonds, intouchable en l'air 🔶) · 8. **Fouisseur** (s'enterre, réapparaît).
 
 ### 6.3 Bestiaire ✅
-> **Document : `Mechanics/Bestiaire.md`** — le bestiaire **complet des 6 zones** (30 monstres + 6 boss), abstrait (`Monstre_01`… : stats, faiblesses, patterns, skills ; designs et noms remplacés plus tard).
+> **Document : `Mechanics/Bestiaire.md`** — le bestiaire **complet des 6 zones** (30 monstres + 6 boss), abstrait en gameplay (stats, faiblesses, patterns, skills définitifs ; noms = placeholders).
+
+- **Direction artistique ✅ (v0.6)** : des créatures **fantastiques venues de l'autre dimension**, dans l'esprit des **Sans-cœur de *Kingdom Hearts*** — designs fun et particuliers, silhouettes fortes, **pas d'animaux réalistes**. Signature proposée : yeux/marquages lumineux de la couleur de l'élément.
 
 - Structure par zone ✅ : 2 types au stage 1, +1 nouveau par stage, les 5 + boss au stage 5.
 - **Objectif prototype ✅ (décision v0.5) : le jeu complet en gameplay** — tout le contenu (armes, monstres, stages, économie) fonctionnel ; seule la couche visuelle des levels manquera.
@@ -204,10 +218,12 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 > Détail : `Mechanics/ArmesEtElements.md` §5.
 
 - **Le gameplay détecte, Niagara décore** ✅ confirmé : traces/projectiles C++ (⚙️ `Bullet` + `BulletPool`), aucune détection dans Niagara.
-- **Debug-first** ✅ v0.5 : tous les comportements de projectiles (trajectoires, perçants, splits, spawns secondaires) sont **visualisables en debug pur** (lignes/formes colorées par élément, sans mesh ni VFX) pour tester le gameplay réel. La couche visuelle est ajoutée **ensuite**, via DataAssets — pour le projectile principal ET les sous-effets (splits, fragments).
+- **Debug-first** ✅ confirmé : tous les comportements de projectiles (trajectoires, perçants, splits, rebonds, spawns secondaires) sont **visualisables en debug pur** (lignes/formes colorées par élément, sans mesh ni VFX). La couche visuelle est ajoutée **ensuite**, via DataAssets — **chaque sous-effet peut recevoir sa ref Niagara ET sa ref sonore** ✅ v0.6.
 - **3 systèmes Niagara maîtres** (tir, traînée, impact) paramétrés par élément.
-- **Une arme = un DataAsset** (`DA_Weapon` : stats, courbe 1–100, comportements par palier, refs VFX/SFX optionnelles — absentes = rendu debug).
+- **Une arme = un DataAsset** (`DA_Weapon` : stats, courbe 1–100, comportements par palier, **Spéciale + sa vidéo** ✅, refs VFX/SFX optionnelles par effet et sous-effet — absentes = rendu debug).
+- **Un stage = un DataAsset** ✅ v0.6 : `DA_Stage` — liste des vagues, **liste des monstres par vague** + quantités + timing, mode, récompenses.
 - **SFX en couches** (MetaSounds).
+- **Architecture complète** : `Production/04_Documents/Technical/ArchitectureTechnique.md` (classes, composants, liens, UI).
 
 ---
 
@@ -231,25 +247,20 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 
 ## 13. Points à approfondir
 
-*Résolus en v0.5 : seuils d'étoiles (tiers), multiplicateurs de drops, laser → Ténèbres, tornade → Vent, frappe céleste → Lumière, niveaux 1–100 (palier majeur /5), ordre de déblocage, skills du mur (principe), tenues par arme, auto-aim de ramassage + drops qui expirent, monstres support élargis, debug-first, prototype = jeu complet gameplay.*
+*Résolus en v0.6 : skills du mur (liste validée), mur à PV global sans réparation en stage, drops à durée de vie + aimant évolutif, patterns validés, trame de l'histoire (héroïne vs invasion dimensionnelle), bestiaire validé (mandat équilibrage), modes Normal/Hard/Enfer + matériaux par tier, contrôles (souris/manette, manette privilégiée), Spéciale active + vidéo, laser Ténèbres refondu, sous-effets avec VFX+SFX optionnels, `DA_Stage` pour les vagues, encyclopédie à dévoilement progressif (`?????`), direction artistique fantastique (type Sans-cœur).*
+
+### Mandats confiés (BAK : « je te laisse calculer/choisir »)
+1. **Équilibrage du bestiaire** — caler stats/faiblesses pour un jeu évolutif et challenging, farm et *try and evolve* en avant.
+2. **Économie complète** — coûts d'armes 1–100 (par tiers Fragments/Cristaux/Noyaux), coûts mur/perso, taux de drops, récompenses par étoiles — pour un *try and become stronger* agréable.
+→ Les deux seront chiffrés dans `Balancing/` une fois le prototype jouable (les valeurs papier seront fausses ; on calibrera sur le ressenti, avec les garde-fous TTK et « 2–3 tentatives par stage »).
 
 ### Gameplay
-1. **Valider les tableaux d'évolution 1–100** des 7 armes (`ArmesEtElements.md` §3) — types et valeurs.
-2. **Skills du mur** — liste finale, conditions de déclenchement, niveaux de déblocage, valeurs.
-3. **Le mur** — PV global ou segments ; réparation en cours de stage ?
-4. **Drops qui expirent** — durée de vie, courbe de portée de l'aimant par niveau.
-5. **Patterns** — prototyper la liste, valider la lisibilité top-down.
-6. **Histoire arcade** — trame, ton, quantité de texte par zone ; contenu du tutoriel.
-
-### Contenu et équilibrage
-7. **Valider le bestiaire** (`Bestiaire.md`) — 30 monstres + 6 boss : stats, faiblesses, patterns.
-8. **Courbes des 30 stages + infini** — recaler `Balancing/MonsterScaling.md` (zones, nv d'armes 1–100).
-9. **Économie** — coûts 1–100 des armes, coûts mur/perso, taux et durée de vie des drops, récompenses par étoiles.
+3. Valider les **tableaux 1–100** des 7 armes (`ArmesEtElements.md` §4) — surtout le laser sombre refondu.
+4. Skills du mur : **valeurs** (PV du bouclier de départ, force de l'onde, seuils).
+5. Spéciale : cooldown exact, durée des vidéos, skippable.
+6. Modes : déblocage par stage ou par zone ; valeurs des multiplicateurs Hard/Enfer.
 
 ### Technique
-10. **Refonte top-down** — personnage libre, caméra, visée (souris ? auto-aim ? 🔶).
-11. **Sauvegarde 5 slots** — étendre `WallDefenseSaveGame`/`AutoSaveComponent`.
-12. **`HealthComponent`** — multiplicateurs élémentaires, bouclier en couche.
-13. **`DA_Weapon` 1–100** — schéma de données des paliers ; rendu **debug-first** des projectiles.
-14. **DataAssets personnage + tenues par arme** — pipeline skins.
-15. **Encyclopédie** — données auto-générées depuis les DataAssets (armes : effets actuels/prochains, coûts).
+7. **Architecture technique complète** : `04_Documents/Technical/ArchitectureTechnique.md` — classes, composants, DataAssets, UI et bindings. C'est le document de référence AVANT de coder.
+8. Refonte top-down (personnage, caméra, visée) selon les contrôles ✅ §4.
+9. Sauvegarde 5 slots ; `HealthComponent` élémentaire + bouclier ; `DA_Weapon` 1–100 + Spéciale/vidéo ; `DA_Stage` vagues ; pipeline tenues/skins ; encyclopédie générée des DataAssets.
