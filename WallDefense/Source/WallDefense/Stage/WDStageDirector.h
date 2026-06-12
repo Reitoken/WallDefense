@@ -31,6 +31,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WD|Stage")
 	void StartStage();
 
+	/** Halts the stage (defeat): no more waves, optionally clears the field. */
+	UFUNCTION(BlueprintCallable, Category = "WD|Stage")
+	void StopStage(bool bDespawnMonsters);
+
 	UFUNCTION(BlueprintPure, Category = "WD|Stage")
 	int32 GetAliveCount() const { return AliveMonsters.Num(); }
 

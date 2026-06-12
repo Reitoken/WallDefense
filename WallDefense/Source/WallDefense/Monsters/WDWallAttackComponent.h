@@ -33,6 +33,7 @@ private:
 	void DoAttack();
 
 	TWeakObjectPtr<AActor> Target;
+	FVector ImpactPoint = FVector::ZeroVector; // closest point on the target's collision (the façade)
 	float Damage = 10.f;
 	float Range = 180.f;
 	float Interval = 1.5f;

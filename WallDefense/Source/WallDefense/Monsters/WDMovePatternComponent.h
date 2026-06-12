@@ -22,6 +22,10 @@ public:
 
 	void Configure(EWDMovePattern InPattern, float InSpeed, AActor* InTarget, float StopDistance);
 
+	/** Repulsion wave (wall skill): loses ground along the advance axis and resumes. */
+	UFUNCTION(BlueprintCallable, Category = "WD|Monster")
+	void PushBack(float Distance);
+
 	UFUNCTION(BlueprintPure, Category = "WD|Monster")
 	bool HasReachedTarget() const { return bReached; }
 
@@ -48,7 +52,8 @@ private:
 	TWeakObjectPtr<AActor> Target;
 
 	FVector SpawnLocation = FVector::ZeroVector;
-	FVector Axis = FVector::XAxisVector;     // spawn -> target
+	FVector AimPoint = FVector::ZeroVector;  // closest point on the target's collision (wide wall -> monsters spread along the façade)
+	FVector Axis = FVector::XAxisVector;     // spawn -> aim point
 	FVector Lateral = FVector::YAxisVector;  // perpendicular
 	float StartDistance = 1.f;
 	float AlongDistance = 0.f;

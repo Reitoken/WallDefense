@@ -31,7 +31,16 @@ void UWDWallAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		return;
 	}
 
-	const float Distance = FVector::Dist2D(GetOwner()->GetActorLocation(), Target->GetActorLocation());
+	// Distance to the target's SURFACE, not its center: a wide wall is hit at its façade.
+	const FVector OwnerLocation = GetOwner()->GetActorLocation();
+	ImpactPoint = Target->GetActorLocation();
+	float Distance = FVector::Dist2D(OwnerLocation, ImpactPoint);
+	FVector ClosestPoint;
+	if (Target->ActorGetDistanceToCollision(OwnerLocation, ECC_WorldDynamic, ClosestPoint) >= 0.f)
+	{
+		ImpactPoint = ClosestPoint;
+		Distance = FVector::Dist2D(OwnerLocation, ClosestPoint);
+	}
 	if (Distance > Range)
 	{
 		return;
@@ -62,7 +71,7 @@ void UWDWallAttackComponent::DoAttack()
 			Shot.Instigator = GetOwner();
 			Shot.IgnoredClass = AWDMonster::StaticClass();
 			const FVector Muzzle = GetOwner()->GetActorLocation() + FVector(0, 0, 40.f);
-			Pool->FireShot(Shot, Muzzle, Target->GetActorLocation() - Muzzle);
+			Pool->FireShot(Shot, Muzzle, ImpactPoint - Muzzle);
 		}
 	}
 	else
@@ -71,12 +80,12 @@ void UWDWallAttackComponent::DoAttack()
 		DamageEvent.Amount = Damage;
 		DamageEvent.Element = Element;
 		DamageEvent.Instigator = GetOwner();
-		DamageEvent.ImpactPoint = Target->GetActorLocation();
+		DamageEvent.ImpactPoint = ImpactPoint;
 		UWDHealthComponent::DamageActor(Target.Get(), DamageEvent);
 
 		if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
 		{
-			Debug->DrawChain(GetOwner()->GetActorLocation(), Target->GetActorLocation(), Element, 0.25f);
+			Debug->DrawChain(GetOwner()->GetActorLocation(), ImpactPoint, Element, 0.25f);
 		}
 	}
 }

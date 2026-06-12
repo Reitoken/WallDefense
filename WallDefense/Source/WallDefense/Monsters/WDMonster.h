@@ -34,6 +34,10 @@ public:
 	/** Brings a sheet to life: stats = sheet multipliers × stage bases. Target = the wall. */
 	void InitFromData(UWDMonsterData* Data, float StageBaseHealth, float StageBaseWallDamage, AActor* Target);
 
+	/** Repulsion wave (wall skill): loses ground along its advance and resumes. */
+	UFUNCTION(BlueprintCallable, Category = "WD|Monster")
+	void PushBack(float Distance);
+
 	UFUNCTION(BlueprintPure, Category = "WD|Monster")
 	UWDMonsterData* GetData() const { return MonsterData; }
 

@@ -86,6 +86,14 @@ void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float
 	Health->OnDied.AddDynamic(this, &AWDMonster::HandleDied);
 }
 
+void AWDMonster::PushBack(float Distance)
+{
+	if (!IsDead())
+	{
+		MovePattern->PushBack(Distance);
+	}
+}
+
 void AWDMonster::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

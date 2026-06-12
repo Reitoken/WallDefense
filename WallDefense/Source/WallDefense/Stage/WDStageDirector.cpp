@@ -31,6 +31,22 @@ void AWDStageDirector::StartStage()
 	StartNextWave();
 }
 
+void AWDStageDirector::StopStage(bool bDespawnMonsters)
+{
+	bRunning = false;
+	if (bDespawnMonsters)
+	{
+		for (AWDMonster* Monster : AliveMonsters)
+		{
+			if (IsValid(Monster))
+			{
+				Monster->Destroy();
+			}
+		}
+	}
+	AliveMonsters.Reset();
+}
+
 void AWDStageDirector::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

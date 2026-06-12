@@ -22,14 +22,34 @@ void UWDMovePatternComponent::Configure(EWDMovePattern InPattern, float InSpeed,
 
 	if (bConfigured)
 	{
-		const FVector ToTarget = (Target->GetActorLocation() - SpawnLocation).GetSafeNormal2D();
+		// Aim at the NEAREST point of the target's collision, not its center: against the wide
+		// wall, monsters spread along the façade instead of piling up in the middle (§11.3).
+		AimPoint = Target->GetActorLocation();
+		FVector ClosestPoint;
+		if (Target->ActorGetDistanceToCollision(SpawnLocation, ECC_WorldDynamic, ClosestPoint) >= 0.f)
+		{
+			AimPoint = ClosestPoint;
+		}
+
+		const FVector ToTarget = (AimPoint - SpawnLocation).GetSafeNormal2D();
 		Axis = ToTarget.IsNearlyZero() ? FVector::XAxisVector : ToTarget;
 		Lateral = FVector::CrossProduct(FVector::UpVector, Axis);
-		StartDistance = FMath::Max(1.f, FVector::Dist2D(SpawnLocation, Target->GetActorLocation()));
+		StartDistance = FMath::Max(1.f, FVector::Dist2D(SpawnLocation, AimPoint));
 		SpiralRadius = StartDistance;
 		SpiralAngle = FMath::Atan2(SpawnLocation.Y - Target->GetActorLocation().Y, SpawnLocation.X - Target->GetActorLocation().X);
 		FlankSide = (FMath::RandBool() ? 1.f : -1.f);
 	}
+}
+
+void UWDMovePatternComponent::PushBack(float Distance)
+{
+	if (!bConfigured || Distance <= 0.f)
+	{
+		return;
+	}
+	AlongDistance = FMath::Max(0.f, AlongDistance - Distance);
+	SpiralRadius = FMath::Min(StartDistance, SpiralRadius + Distance);
+	bReached = false;
 }
 
 void UWDMovePatternComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -43,8 +63,8 @@ void UWDMovePatternComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 
 	Time += DeltaTime;
-	const FVector TargetLocation = Target->GetActorLocation();
-	const float DistanceToTarget = FVector::Dist2D(GetOwner()->GetActorLocation(), TargetLocation);
+	const FVector TargetLocation = Target->GetActorLocation(); // spiral orbits the center
+	const float DistanceToTarget = FVector::Dist2D(GetOwner()->GetActorLocation(), AimPoint);
 
 	if (DistanceToTarget <= StopDistance)
 	{

@@ -86,6 +86,9 @@
   <div class="grp">Étape 4 — Monstres</div>
   <a href="#etape4">Ce qui est implémenté</a>
   <a href="#tester4">Comment tester (étape 4)</a>
+  <div class="grp">Étape 5 — Le mur + la boucle</div>
+  <a href="#etape5">Ce qui est implémenté</a>
+  <a href="#tester5">Comment tester (étape 5)</a>
   <div class="grp">Validation</div>
   <a href="#tests">Tests automatisés</a>
   <div class="grp">Référence</div>
@@ -100,9 +103,9 @@
   <p><strong>Wall Defense</strong> — tower defense incarné, vue top-down : une héroïne défend son mur contre des vagues de monstres dimensionnels en switchant entre <strong>7 armes élémentaires</strong>. 30 stages (6 zones), 3 modes, stage infini.</p>
   <p class="muted">Architecture : composants indépendants · communication par délégués · DataAssets comme ponts de données · UI event-driven · debug-first. Référence complète : <span class="mono">ArchitectureTechnique.md</span>.</p>
   <div class="kpis">
-    <div class="kpi"><div class="v">4/7</div><div class="l">Étapes terminées</div></div>
-    <div class="kpi"><div class="v" id="kpi-tests">25/25</div><div class="l">Tests auto validés</div></div>
-    <div class="kpi"><div class="v">26</div><div class="l">Classes livrées</div></div>
+    <div class="kpi"><div class="v">5/7</div><div class="l">Étapes terminées</div></div>
+    <div class="kpi"><div class="v" id="kpi-tests">31/31</div><div class="l">Tests auto validés</div></div>
+    <div class="kpi"><div class="v">33</div><div class="l">Classes livrées</div></div>
   </div>
   <p style="margin-top:14px">
     <span class="elem" style="background:var(--normal)"></span>Normal&nbsp;&nbsp;
@@ -133,12 +136,12 @@
     <div class="title">Monstres + hit response <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
     <div class="desc">Bestiaire zone 1 vivant (5 monstres + boss), 8 patterns de déplacement, soigneuse à aura, tireur à distance, vagues sans temps morts, hit response complet (flash, knockback, hitstop sur faiblesse, vibration manette).</div>
   </div></div>
-  <div class="step"><div class="num">5</div><div class="body">
-    <div class="title">Le mur + la boucle <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
-    <div class="desc">AWDWall · victoire/défaite · étoiles · écran de chargement + préchargement. <strong>Jalon : boucle complète jouable en debug.</strong></div>
+  <div class="step done"><div class="num">5</div><div class="body">
+    <div class="title">Le mur + la boucle <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
+    <div class="desc">Le vrai mur (PV, défense, skills one-shot : bouclier de départ, onde de répulsion, auto-réparation) · victoire/défaite · étoiles selon les PV du mur · écran de chargement + préchargement + fondu. <strong>Jalon atteint : boucle complète jouable en debug.</strong></div>
   </div></div>
   <div class="step"><div class="num">6</div><div class="body">
-    <div class="title">Méta <span class="badge b-todo">À VENIR</span></div>
+    <div class="title">Méta <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
     <div class="desc">Loot + aimant · Progression · sauvegarde 5 slots · hub · pause/résumé · options + langue.</div>
   </div></div>
   <div class="step"><div class="num">7</div><div class="body">
@@ -340,15 +343,80 @@
 
 <div class="card">
   <h3>Ton premier vrai combat (10 minutes)</h3>
-  <p>1. Ouvre <code>L_Sandbox</code> → <strong>Play</strong>. Un <strong>grand bloc gris</strong> (le mur provisoire, 2000 PV) apparaît derrière toi ; le stage démarre après <strong>5 secondes</strong>.<br><br>
+  <p class="muted">⚠ Depuis l'étape 5, le combat complet se teste avec <code>WDStageGameMode</code> (voir étape 5) — <code>WDSandboxGameMode</code> est redevenu un pur stand d'entraînement (héroïne + 3 cibles, sans vagues).</p>
+  <p>1. Mets <strong>GameMode Override</strong> sur <code>WDStageGameMode</code> → <strong>Play</strong>. Le <strong>mur</strong> apparaît derrière toi ; le stage démarre après le chargement.<br><br>
      ✅ <strong>Vague 1</strong> : 3 Ombrillons rouges marchent droit vers le mur — brûle-les au lance-flammes (« FAIBLESSE ! » + micro-gel du temps + vibration).<br>
      ✅ <strong>Zéro attente</strong> : nettoie la vague avant la fin du chrono → la suivante part aussitôt.<br>
      ✅ <strong>Vague 2</strong> : les Vif-Esprits zigzaguent — décroche ta visée pour les suivre.<br>
      ✅ <strong>Vague 3</strong> : le Rempart bleu encaisse (défense 50) — passe au canon givrant (sa faiblesse) ; la <strong>Vestale</strong> soigne les blessés (cercles + « +15 » verts) — élimine-la en priorité.<br>
      ✅ <strong>Vague 4</strong> : les Crache-Brume s'arrêtent au loin et <strong>bombardent le mur</strong> — leurs projectiles ignorent les autres monstres mais pas le mur. Intercepte-les.<br>
      ✅ <strong>Vague 5</strong> : la <strong>Brute dimensionnelle</strong> — énorme, lente, ×3 dégâts au mur. Sa mort déclenche un gros ralenti.<br>
-     ✅ Laisse les monstres atteindre le mur : ses PV fondent, à 0 il disparaît (le vrai mur + défaite = étape 5).<br>
-     ✅ Fin : « STAGE TERMINÉ ! » au-dessus du mur.</p>
+     ✅ Laisse les monstres atteindre le mur : ses PV fondent — à 0 c'est la <strong>défaite</strong> (étape 5).<br>
+     ✅ Fin : « STAGE TERMINÉ ! » au-dessus du mur, puis le verdict d'étoiles (étape 5).</p>
+</div>
+
+<h2 id="etape5">Étape 5 — Ce qui est implémenté <span class="badge b-ok">✓</span></h2>
+
+<details open>
+  <summary><span class="mono">AWDWall</span> + <span class="mono">UWDWallSkillsComponent</span> — l'objectif à défendre <span class="badge b-ok">livré + 3 tests</span></summary>
+  <div class="inner">
+    <p>Le vrai mur : <strong>PV global unique</strong> (ta décision v0.6), défense %, large façade de 2800 unités qui <strong>rougit à mesure qu'il souffre</strong>. Sa fiche <span class="mono">DA_Wall</span> (<span class="mono">UWDWallData</span>) définit PV/défense <strong>par niveau</strong> et les <strong>skills à déclenchement unique</strong> (GDD §3.2) :</p>
+    <table>
+      <tr><th>Skill</th><th>Condition (one-shot)</th><th>Effet debug</th><th>Débloqué au</th></tr>
+      <tr><td><strong>Bouclier de départ</strong></td><td>au lancement des vagues</td><td>+15 % des PV max en couche de bouclier</td><td>niveau 2</td></tr>
+      <tr><td><strong>Onde de répulsion</strong></td><td>premier ennemi au contact qui frappe</td><td>repousse de 700 uu tous les monstres à moins de 900 uu</td><td>niveau 3</td></tr>
+      <tr><td><strong>Auto-réparation</strong></td><td>PV sous 25 % (peut sauver d'un coup fatal)</td><td>+25 % des PV max</td><td>niveau 4</td></tr>
+    </table>
+    <p class="muted">Valeurs 🔶 à équilibrer (placeholder debug). Les monstres visent désormais le <strong>point le plus proche de la façade</strong> : ils se répartissent le long du mur au lieu de s'empiler au centre (§11.3 — les vrais slots d'attaque viendront avec le polish).</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">AWDStageGameMode</span> — la boucle complète : victoire, défaite, étoiles <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p>L'<strong>assembleur</strong> : héroïne + mur + directeur de vagues, câble tout (victoire/défaite/répulsion) et arbitre. <strong>Victoire</strong> (vagues nettoyées) → étoiles selon les PV restants du mur (GDD §2.2) :</p>
+    <pre>100 % = ⭐⭐⭐    ≥ 66 % = ⭐⭐    ≥ 33 % = ⭐    &lt; 33 % = 0 (victoire quand même)
+Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
+    <p><strong>Défaite</strong> (mur détruit) → message, terrain nettoyé. Dans les deux cas, le stage <strong>se relance après quelques secondes</strong> (le retour au menu = étape 6). C'est la boucle <em>try and become stronger</em> jouable de bout en bout.</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">UWDPreloadSubsystem</span> + écran de chargement — zéro accroc en partie <span class="badge b-ok">livré + 2 tests</span></summary>
+  <div class="inner">
+    <p>Avant le stage : collecte <strong>par réflexion</strong> toutes les références soft (<code>TSoftObjectPtr</code>) des DataAssets du stage (fiches monstres, armes possédées, mur) — toute référence ajoutée demain est ramassée gratuitement — puis charge le tout en <strong>asynchrone</strong> et <strong>préchauffe le pool de projectiles</strong>. Événements : <span class="pill">OnPreloadProgress (0–1)</span><span class="pill">OnPreloadFinished</span></p>
+    <p><span class="mono">UWDLoadingScreenWidget</span> : l'écran de chargement s'abonne au préchargement (pattern de binding §7), affiche sa barre, se retire tout seul à la fin → <strong>fondu</strong> de la caméra vers le jeu. Sans design Blueprint, il construit son visuel debug lui-même (fond sombre + titre + barre).</p>
+  </div>
+</details>
+
+<div class="card">
+  <strong>Fichiers créés / modifiés</strong>
+  <table>
+    <tr><td><code>Source/WallDefense/Wall/WDWallData.h/.cpp</code></td><td class="muted">DA_Wall : niveaux, skills, mesh optionnel</td></tr>
+    <tr><td><code>Source/WallDefense/Wall/WDWallSkillsComponent.h/.cpp</code></td><td class="muted">skills one-shot conditionnels</td></tr>
+    <tr><td><code>Source/WallDefense/Wall/WDWall.h/.cpp</code></td><td class="muted">l'acteur mur (assemble et câble)</td></tr>
+    <tr><td><code>Source/WallDefense/Stage/WDStageMath.h</code></td><td class="muted">étoiles + multiplicateurs (maths pures testées)</td></tr>
+    <tr><td><code>Source/WallDefense/GameModes/WDStageGameMode.h/.cpp</code></td><td class="muted">la boucle : assemblage, victoire/défaite, relance</td></tr>
+    <tr><td><code>Source/WallDefense/Core/WDPreloadSubsystem.h/.cpp</code></td><td class="muted">préchargement asynchrone + préchauffe du pool</td></tr>
+    <tr><td><code>Source/WallDefense/UI/WDLoadingScreenWidget.h/.cpp</code></td><td class="muted">écran de chargement event-driven</td></tr>
+    <tr><td><code>MovePattern / WallAttack / Monster / StageDirector</code></td><td class="muted">visée façade, PushBack (répulsion), StopStage (défaite)</td></tr>
+    <tr><td><code>Source/WallDefense/Tests/WDWallTests.cpp + WDPreloadTests.cpp</code></td><td class="muted">6 tests automatisés</td></tr>
+  </table>
+</div>
+
+<h2 id="tester5">Comment tester dans Unreal — Étape 5</h2>
+
+<div class="card">
+  <h3>La boucle complète (10 minutes)</h3>
+  <p>1. Ouvre <code>L_Sandbox</code> → <strong>World Settings → GameMode Override</strong> → <code>WDStageGameMode</code> → <strong>Play</strong>.<br><br>
+     ✅ <strong>Écran de chargement</strong> : fond sombre, « CHARGEMENT… », barre qui se remplit, puis <strong>fondu</strong> vers le jeu — le mur gris est derrière toi, les vagues partent ~3 s après.<br>
+     ✅ <strong>Bouclier de départ</strong> : au lancement des vagues, « SKILL DU MUR : Bouclier de départ ! » — le mur affiche <code>[Bouclier 600]</code> (15 % de 4000, niveau debug 4).<br>
+     ✅ <strong>Répartition</strong> : les monstres ne convergent plus vers le centre — chacun marche vers le point de façade le plus proche de lui.<br>
+     ✅ <strong>Onde de répulsion</strong> : laisse un monstre frapper le mur — annonce + cercle turquoise au sol, tous les monstres proches sont <strong>repoussés de 700 uu</strong> et reviennent.<br>
+     ✅ <strong>Auto-réparation</strong> : laisse les PV tomber sous 25 % (≈ sous 1000) — le mur se soigne de +25 % une seule fois. Elle peut même sauver d'un coup fatal.<br>
+     ✅ <strong>Victoire</strong> : nettoie les 5 vagues — « VICTOIRE ! ★★☆ — Mur 71% — Récompenses ×1.50 » selon les PV restants, puis le stage se relance (re-chargement → re-fondu).<br>
+     ✅ <strong>Défaite</strong> : laisse mourir le mur (il devient noir) — « DÉFAITE — LE MUR EST TOMBÉ », terrain nettoyé, relance auto.<br>
+     ✅ <strong>Niveau du mur</strong> : sur le GameMode (Blueprint enfant ou Détails), <code>WallLevel</code> 1 = aucun skill, 4 = les trois. <code>wd.Debug.Draw 0</code> coupe tous les textes.</p>
 </div>
 
 <h2 id="tester">Comment tester dans Unreal — Étape 1</h2>
@@ -407,6 +475,12 @@
     <tr><td class="mono">Patterns.BurrowAndFlank</td><td>Fouisseur surface/sous-terre en cycle ; flanqueur converge près du mur ; sauteur jamais sous le sol</td><td>✅</td></tr>
     <tr><td class="mono">Monsters.Zone1Bestiary</td><td>6 fiches : toutes avec faiblesse, soigneuse qui soigne sans frapper le mur, tireur à distance, boss le plus costaud</td><td>✅</td></tr>
     <tr><td class="mono">Stage.DebugStage1</td><td>5 vagues valides, chronos sains, le boss ferme le stage</td><td>✅</td></tr>
+    <tr><td class="mono">Stage.StarsThresholds</td><td>100 % = 3★, 66 % = 2★, 33 % = 1★, en-dessous 0★ ; multiplicateurs ×1/×1,25/×1,5/×2</td><td>✅</td></tr>
+    <tr><td class="mono">Wall.DebugWallData</td><td>Niveaux croissants en PV, 3 skills aux niveaux de déblocage sains, clamp des niveaux hors bornes</td><td>✅</td></tr>
+    <tr><td class="mono">Wall.SkillsFireOnce</td><td>Bouclier au départ, répulsion au premier contact, réparation sous 25 % — chacun UNE seule fois</td><td>✅</td></tr>
+    <tr><td class="mono">Wall.SkillsLockedByLevel</td><td>Mur niveau 1 : aucun skill armé, aucune condition ne déclenche rien</td><td>✅</td></tr>
+    <tr><td class="mono">Preload.CollectsSoftReferences</td><td>La réflexion ramasse les TSoftObjectPtr (le mesh du mur), racine nulle sans crash</td><td>✅</td></tr>
+    <tr><td class="mono">Preload.StageBundle</td><td>Bundle de stage dédupliqué ; stage debug seul = zéro réf (pas encore d'assets)</td><td>✅</td></tr>
   </table>
   <p class="muted">Exécution headless (sans ouvrir l'éditeur) :</p>
   <pre>& "C:\Unreal Engine\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
@@ -418,18 +492,18 @@
 <p class="muted">L'architecture complète (descriptions, événements, liens) : <span class="mono">ArchitectureTechnique.md</span>. Statut de chaque classe :</p>
 
 <details>
-  <summary>Subsystems persistants <span class="badge b-ok">1/7 livré</span></summary>
+  <summary>Subsystems persistants <span class="badge b-ok">2/8 livrés</span></summary>
   <div class="inner"><table>
     <tr><th>Classe</th><th>Rôle</th><th>Étape</th></tr>
     <tr><td class="mono">UWDDebugSubsystem</td><td>dessin debug coloré par élément, CVar unique</td><td><span class="badge b-ok">1 ✓</span></td></tr>
     <tr><td class="mono">UWDSaveSubsystem</td><td>5 slots, auto-save/load</td><td><span class="badge b-todo">6</span></td></tr>
     <tr><td class="mono">UWDProgressionSubsystem</td><td>or, ressources, XP, niveaux, étoiles, découvertes</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">UWDUISubsystem</td><td>pile d'écrans, fondus, vidéos, pause/auto-pause</td><td><span class="badge b-todo">5–6</span></td></tr>
+    <tr><td class="mono">UWDUISubsystem</td><td>pile d'écrans, fondus, vidéos, pause/auto-pause</td><td><span class="badge b-todo">6</span></td></tr>
     <tr><td class="mono">UWDSettingsSubsystem</td><td>langue, volumes, qualité, remapping (global)</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">UWDPreloadSubsystem</td><td>préchargement complet avant stage + transitions</td><td><span class="badge b-todo">5</span></td></tr>
+    <tr><td class="mono">UWDPreloadSubsystem</td><td>préchargement complet avant stage (réflexion sur les soft refs) + préchauffe du pool</td><td><span class="badge b-ok">5 ✓</span></td></tr>
     <tr><td class="mono">UWDMusicSubsystem</td><td>musique dynamique (jeu + menu)</td><td><span class="badge b-todo">7</span></td></tr>
     <tr><td class="mono">UWDSteamSubsystem</td><td>succès, timeline (isolé, no-op sans Steam)</td><td><span class="badge b-todo">7</span></td></tr>
-    <tr><td class="mono">UWDGameFeelSubsystem</td><td>hitstop, camera shake, vibration, ralentis</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">UWDGameFeelSubsystem</td><td>hitstop, camera shake, vibration, ralentis</td><td><span class="badge b-ok">4 ✓</span></td></tr>
   </table></div>
 </details>
 
@@ -443,7 +517,8 @@
     <tr><td class="mono">DA_Monster (UWDMonsterData)</td><td>une fiche du bestiaire (zone 1 en debug : 5+boss)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">DA_Stage (UWDStageData)</td><td>un stage : vagues, monstres par vague, bases de stats (récompenses : étape 6)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">Hit response (composant + GameFeel)</td><td>flash, knockback, chiffres, hitstop, vibration (DataAsset de recettes : avec les assets)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
-    <tr><td class="mono">DA_Wall / DA_Character / DA_Outfit</td><td>mur, perso, tenues</td><td><span class="badge b-todo">5–7</span></td></tr>
+    <tr><td class="mono">DA_Wall (UWDWallData)</td><td>le mur : PV/défense par niveau, skills one-shot, mesh optionnel (coûts : étape 6)</td><td><span class="badge b-ok">5 ✓</span></td></tr>
+    <tr><td class="mono">DA_Character / DA_Outfit</td><td>perso, tenues</td><td><span class="badge b-todo">6–7</span></td></tr>
   </table></div>
 </details>
 
@@ -458,10 +533,11 @@
     <tr><td class="mono">AWDMonster + patterns + auras</td><td>monstres data-driven (8 patterns, aura de soin, tireur, anim state)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">AWDStageDirector</td><td>vagues, chrono inter-vague sans attente (kill streak : étape 6)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">UWDGameFeelSubsystem</td><td>hitstop, vibration manette (camera shake : avec assets)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
-    <tr><td class="mono">AWDWall + skills</td><td>le mur : PV global, skills conditionnels</td><td><span class="badge b-todo">5</span></td></tr>
+    <tr><td class="mono">AWDWall + UWDWallSkillsComponent</td><td>le mur : PV global, défense, skills one-shot, façade à répartition</td><td><span class="badge b-ok">5 ✓</span></td></tr>
+    <tr><td class="mono">AWDStageGameMode</td><td>la boucle : assemblage, victoire/défaite, étoiles, relance debug</td><td><span class="badge b-ok">5 ✓</span></td></tr>
     <tr><td class="mono">AWDLootPickup + Magnet</td><td>drops qui expirent, aimant évolutif</td><td><span class="badge b-todo">6</span></td></tr>
     <tr><td class="mono">UWDHeroAnimInstance</td><td>état d'anim de l'héroïne exposé à l'AnimBP (Speed, bIsMoving, MoveDirection)</td><td><span class="badge b-ok">2 ✓</span></td></tr>
-    <tr><td class="mono">UWDMonsterAnimInstance</td><td>état d'anim des monstres (bIsDead, bIsAttacking, états…)</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">UWDMonsterAnimInstance</td><td>état d'anim des monstres (bIsDead, bIsAttacking, états…)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
   </table></div>
 </details>
 
@@ -472,7 +548,8 @@
     <tr><td class="mono">HUD / MonsterStatus / DamageNumbers</td><td>mur, armes, vagues, barres de vie (désactivables), chiffres</td><td><span class="badge b-todo">4–5</span></td></tr>
     <tr><td class="mono">Pause / StageSummary</td><td>pause (abandon = défaite), écran de dopamine</td><td><span class="badge b-todo">6</span></td></tr>
     <tr><td class="mono">Hub / Upgrade / Encyclopédie / StageSelect</td><td>le menu</td><td><span class="badge b-todo">6–7</span></td></tr>
-    <tr><td class="mono">Loading / Options / LanguageSelect / SaveSlots</td><td>chargement, options, 1er démarrage, slots</td><td><span class="badge b-todo">5–6</span></td></tr>
+    <tr><td class="mono">UWDLoadingScreenWidget</td><td>écran de chargement event-driven (visuel debug intégré, habillage BP plus tard)</td><td><span class="badge b-ok">5 ✓</span></td></tr>
+    <tr><td class="mono">Options / LanguageSelect / SaveSlots</td><td>options, 1er démarrage, slots</td><td><span class="badge b-todo">6</span></td></tr>
   </table></div>
 </details>
 
