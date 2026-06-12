@@ -42,6 +42,10 @@ void AWDStageGameMode::InitGame(const FString& MapName, const FString& Options, 
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
 
+	// The hub travels here with ?WDStage=N?WDMode=M (no options = stage 1 Normal).
+	StageNumber = FMath::Clamp(UGameplayStatics::GetIntOption(Options, TEXT("WDStage"), 1), 1, 5);
+	Mode = static_cast<EWDDifficulty>(FMath::Clamp(UGameplayStatics::GetIntOption(Options, TEXT("WDMode"), 0), 0, 2));
+
 	// No PlayerStart in the map -> Unreal would spawn nobody. Create one above the origin.
 	if (TActorIterator<APlayerStart>(GetWorld()).operator bool() == false)
 	{
@@ -58,7 +62,7 @@ void AWDStageGameMode::StartPlay()
 
 	if (!Stage)
 	{
-		Stage = UWDStageData::MakeDebugStage1(this);
+		Stage = UWDStageData::MakeZone1Stage(this, StageNumber);
 	}
 	if (!WallData)
 	{
@@ -68,11 +72,19 @@ void AWDStageGameMode::StartPlay()
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	// The wall fights at the level bought in the hub — upgrading it finally SHOWS in stage.
+	int32 WallLevel = WallLevelOverride;
+	if (WallLevel <= 0)
+	{
+		const UWDProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWDProgressionSubsystem>();
+		WallLevel = Progression ? Progression->GetWallLevel() : 1;
+	}
+
 	Wall = GetWorld()->SpawnActor<AWDWall>(WallLocation, FRotator::ZeroRotator, Params);
 	Wall->InitFromData(WallData, WallLevel);
 
 	Director = GetWorld()->SpawnActor<AWDStageDirector>(FVector::ZeroVector, FRotator::ZeroRotator, Params);
-	Director->Configure(Stage, Wall, MonsterSpawnCenter, MonsterSpawnHalfWidth);
+	Director->Configure(Stage, Wall, MonsterSpawnCenter, MonsterSpawnHalfWidth, Mode);
 
 	// THE wiring point (ArchitectureTechnique §6.6): victory, defeat, repulsion, run loot.
 	Wall->Health->OnDied.AddDynamic(this, &AWDStageGameMode::HandleWallDestroyed);
@@ -196,7 +208,7 @@ void AWDStageGameMode::FinishStage(bool bVictory)
 	// Stars from the wall's remaining HP; the loot is ALWAYS kept — defeat just means ×1 (GDD §2.2/§7).
 	const int32 Stars = bVictory ? WDStageMath::StarsFromWallHealth(Wall->GetHealthPercent()) : 0;
 	const float Multiplier = bVictory ? WDStageMath::RewardMultiplierForStars(Stars) : 1.f;
-	const int32 BonusGold = bVictory ? WDProgressionMath::StarBonusGold(Stars, Stage->StageNumber) : 0;
+	const int32 BonusGold = bVictory ? WDProgressionMath::StarBonusGold(Stars, StageNumber) : 0;
 
 	FWDLootBundle Granted = RunLoot; // display fallback if no subsystem (tests/odd worlds)
 	int32 CharacterLevel = 1;
@@ -209,7 +221,7 @@ void AWDStageGameMode::FinishStage(bool bVictory)
 		}
 		if (bVictory)
 		{
-			Progression->RegisterStageResult(Stage->StageNumber, EWDDifficulty::Normal, Stars);
+			Progression->RegisterStageResult(StageNumber, Mode, Stars);
 		}
 		CharacterLevel = Progression->GetCharacterLevel();
 	}
@@ -236,7 +248,9 @@ void AWDStageGameMode::FinishStage(bool bVictory)
 
 void AWDStageGameMode::HandleSummaryReplay()
 {
-	TravelTo(TEXT("game=/Script/WallDefense.WDStageGameMode"));
+	// Same stage, same mode.
+	TravelTo(*FString::Printf(TEXT("game=/Script/WallDefense.WDStageGameMode?WDStage=%d?WDMode=%d"),
+		StageNumber, static_cast<int32>(Mode)));
 }
 
 void AWDStageGameMode::HandleSummaryMenu()

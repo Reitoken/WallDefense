@@ -3,6 +3,8 @@
 #include "Weapons/WDWeaponMath.h"
 #include "Weapons/WDTargeting.h"
 #include "Combat/WDHealthComponent.h"
+#include "Monsters/WDMonster.h"
+#include "Monsters/WDMonsterData.h"
 #include "Core/WDDebugSubsystem.h"
 
 AWDProjectile::AWDProjectile()
@@ -136,6 +138,20 @@ void AWDProjectile::ApplyHit(AActor* Victim, const FVector& ImpactPoint)
 	Damage.Instigator = Params.Instigator;
 	Damage.ImpactPoint = ImpactPoint;
 	UWDHealthComponent::DamageActor(Victim, Damage);
+
+	// Wind signature: LIGHT enemies lose ground along their own path (never through the wall).
+	if (Params.PushBackDistance > 0.f)
+	{
+		if (AWDMonster* Monster = Cast<AWDMonster>(Victim))
+		{
+			const UWDMonsterData* Data = Monster->GetData();
+			const bool bHeavy = Data && (Data->Role == EWDMonsterRole::Tank || Data->Role == EWDMonsterRole::Boss);
+			if (!bHeavy)
+			{
+				Monster->PushBack(Params.PushBackDistance);
+			}
+		}
+	}
 
 	if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
 	{

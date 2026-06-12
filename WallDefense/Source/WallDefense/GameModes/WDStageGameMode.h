@@ -40,7 +40,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "WD|Stage")
 	FWDOnStageFinished OnStageFinished;
 
-	/** Stage to play; none = the zone 1 debug stage. */
+	/** Stage to play; none = generated zone 1 stage (number from the ?WDStage= travel option). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "WD|Stage")
 	TObjectPtr<UWDStageData> Stage;
 
@@ -48,9 +48,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "WD|Stage")
 	TObjectPtr<UWDWallData> WallData;
 
-	/** Debug default = max level so every wall skill shows up in playtests. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "WD|Stage", meta = (ClampMin = "1"))
-	int32 WallLevel = 4;
+	/** 0 = the wall level bought in the hub (Progression). Set >0 to force a level in tests. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "WD|Stage", meta = (ClampMin = "0"))
+	int32 WallLevelOverride = 0;
 
 	/** Breath between the fade-in and the first wave. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "WD|Stage", meta = (ClampMin = "0.0"))
@@ -97,6 +97,10 @@ private:
 
 	/** Everything the magnet grabbed this run (GDD §7). */
 	FWDLootBundle RunLoot;
+
+	/** From the travel options (?WDStage=N?WDMode=M) — the hub picks them. */
+	int32 StageNumber = 1;
+	EWDDifficulty Mode = EWDDifficulty::Normal;
 
 	FTimerHandle StartTimer;
 	bool bStageOver = false;

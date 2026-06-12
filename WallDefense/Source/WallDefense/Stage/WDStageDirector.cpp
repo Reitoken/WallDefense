@@ -10,12 +10,14 @@ AWDStageDirector::AWDStageDirector()
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }
 
-void AWDStageDirector::Configure(UWDStageData* InStage, AActor* InTarget, const FVector& InSpawnCenter, float InSpawnHalfWidth)
+void AWDStageDirector::Configure(UWDStageData* InStage, AActor* InTarget, const FVector& InSpawnCenter, float InSpawnHalfWidth,
+	EWDDifficulty InDifficulty)
 {
 	Stage = InStage;
 	Target = InTarget;
 	SpawnCenter = InSpawnCenter;
 	SpawnHalfWidth = InSpawnHalfWidth;
+	Difficulty = InDifficulty;
 }
 
 void AWDStageDirector::StartStage()
@@ -108,7 +110,7 @@ void AWDStageDirector::StartNextWave()
 			AWDMonster* Monster = GetWorld()->SpawnActor<AWDMonster>(SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 			if (Monster)
 			{
-				Monster->InitFromData(Entry.Monster, Stage->BaseHealth, Stage->BaseWallDamage, Target.Get());
+				Monster->InitFromData(Entry.Monster, Stage->BaseHealth, Stage->BaseWallDamage, Target.Get(), Difficulty);
 				Monster->OnKilled.AddDynamic(this, &AWDStageDirector::HandleMonsterKilled);
 				AliveMonsters.Add(Monster);
 			}

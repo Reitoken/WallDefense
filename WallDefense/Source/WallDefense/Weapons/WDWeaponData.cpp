@@ -12,6 +12,7 @@ FWDShotParams UWDWeaponData::MakeShotParams(AActor* InInstigator) const
 	Params.Bounce = Bounce;
 	Params.FragmentCount = FragmentCount;
 	Params.ChainCount = ChainCount;
+	Params.PushBackDistance = ProjectilePushBack;
 	Params.Instigator = InInstigator;
 	return Params;
 }
@@ -56,11 +57,11 @@ TArray<UWDWeaponData*> UWDWeaponData::MakeDebugArsenal(UObject* Outer)
 		W->Damage = 12.f; W->FireInterval = 0.4f; W->ProjectileSpeed = 3500.f; W->ChainCount = 1; W->Range = 1700.f;
 		Arsenal.Add(W);
 	}
-	// Vent — Canon à tornade : lent, large, transperce tout.
+	// Vent — Canon à tornade : lent, large, transperce tout et REPOUSSE les ennemis légers.
 	{
 		UWDWeaponData* W = MakeWeapon(Outer, TEXT("Canon à tornade"), EWDElement::Wind, EWDFireMode::Projectile);
 		W->Damage = 15.f; W->FireInterval = 0.9f; W->ProjectileSpeed = 700.f; W->ProjectileRadius = 100.f;
-		W->Pierce = 999; W->Range = 1200.f;
+		W->Pierce = 999; W->Range = 1200.f; W->ProjectilePushBack = 160.f;
 		Arsenal.Add(W);
 	}
 	// Lumière — Frappe céleste : colonne sur la zone visée, après un court délai.

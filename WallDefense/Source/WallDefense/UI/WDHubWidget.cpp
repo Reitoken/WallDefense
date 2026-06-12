@@ -6,6 +6,7 @@
 #include "Core/WDSettingsSubsystem.h"
 #include "Wall/WDWallData.h"
 #include "Weapons/WDWeaponData.h"
+#include "Monsters/WDMonsterData.h"
 #include "TimerManager.h"
 
 namespace
@@ -40,6 +41,7 @@ void UWDHubWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	Arsenal = UWDWeaponData::MakeDebugArsenal(this);
+	Bestiary = UWDMonsterData::MakeZone1Bestiary(this);
 
 	if (UWDProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWDProgressionSubsystem>())
 	{
@@ -121,12 +123,12 @@ void UWDHubWidget::RebuildContent()
 		WDWidgetKit::AddRow(ContentColumn, WDWidgetKit::MakeText(Tree, FText::FromString(ResourceLine), 14, MutedText), 4.f);
 	}
 
-	const int32 BestStars = Progression->GetBestStars(1, EWDDifficulty::Normal);
+	const int32 BestStars = Progression->GetBestStars(SelectedStage, SelectedMode);
 	if (BestStars >= 0)
 	{
 		const TCHAR* StarIcons[] = { TEXT("☆☆☆"), TEXT("★☆☆"), TEXT("★★☆"), TEXT("★★★") };
 		WDWidgetKit::AddRow(ContentColumn, WDWidgetKit::MakeText(Tree,
-			FText::Format(NSLOCTEXT("WDUI", "HubBest", "Meilleur score — Stage 1 : {0}"), FText::FromString(StarIcons[FMath::Clamp(BestStars, 0, 3)])), 14, MutedText), 10.f);
+			FText::Format(NSLOCTEXT("WDUI", "HubBest", "Meilleur score — Stage {0} : {1}"), SelectedStage, FText::FromString(StarIcons[FMath::Clamp(BestStars, 0, 3)])), 14, MutedText), 10.f);
 	}
 
 	// --- Wall upgrade ---
@@ -200,6 +202,67 @@ void UWDHubWidget::RebuildContent()
 		WDWidgetKit::AddRow(ContentColumn, Row, 10.f);
 	}
 
+	// --- Stage & mode select (unlock chain: previous stage, then easier mode — GDD §2.1/§2.5) ---
+	{
+		UHorizontalBox* Row = Tree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		WDWidgetKit::AddCell(Row, WDWidgetKit::MakeText(Tree, NSLOCTEXT("WDUI", "HubStages", "Stage :"), 14, MutedText), 10.f);
+		for (int32 StageIt = 1; StageIt <= 5; ++StageIt)
+		{
+			FString Label = FString::Printf(TEXT("%d"), StageIt);
+			if (SelectedStage == StageIt)
+			{
+				Label = TEXT("[ ") + Label + TEXT(" ]");
+			}
+			UButton* StageButton = WDWidgetKit::MakeTextButton(Tree, FText::FromString(Label), 13);
+			StageButton->SetIsEnabled(Progression->IsStageUnlocked(StageIt, SelectedMode));
+			BindClick(StageButton, this, FName(*FString::Printf(TEXT("HandleStage%d"), StageIt)));
+			WDWidgetKit::AddCell(Row, StageButton, 6.f);
+		}
+
+		WDWidgetKit::AddCell(Row, WDWidgetKit::MakeText(Tree, NSLOCTEXT("WDUI", "HubMode", "Mode :"), 14, MutedText), 10.f);
+		const TTuple<FText, EWDDifficulty, FName> ModeChoices[] = {
+			{ NSLOCTEXT("WDUI", "ModeNormal", "Normal"), EWDDifficulty::Normal, FName(TEXT("HandleModeNormal")) },
+			{ NSLOCTEXT("WDUI", "ModeHard", "Hard"), EWDDifficulty::Hard, FName(TEXT("HandleModeHard")) },
+			{ NSLOCTEXT("WDUI", "ModeHell", "Enfer"), EWDDifficulty::Hell, FName(TEXT("HandleModeHell")) } };
+		for (const auto& Choice : ModeChoices)
+		{
+			FText Label = Choice.Get<0>();
+			if (SelectedMode == Choice.Get<1>())
+			{
+				Label = FText::FromString(TEXT("[ ") + Label.ToString() + TEXT(" ]"));
+			}
+			UButton* ModeButton = WDWidgetKit::MakeTextButton(Tree, Label, 13);
+			ModeButton->SetIsEnabled(Progression->IsStageUnlocked(1, Choice.Get<1>()));
+			BindClick(ModeButton, this, Choice.Get<2>());
+			WDWidgetKit::AddCell(Row, ModeButton, 6.f);
+		}
+		WDWidgetKit::AddRow(ContentColumn, Row, 10.f);
+	}
+
+	// --- Encyclopedia (GDD §2.4): met monsters reveal their page, weakness hits confirm the element ---
+	{
+		FString EncycloLine;
+		for (const UWDMonsterData* Monster : Bestiary)
+		{
+			const FName MonsterName(*Monster->DisplayName.ToString());
+			if (!Progression->IsMonsterDiscovered(MonsterName))
+			{
+				EncycloLine += TEXT("?????     ");
+			}
+			else if (Progression->IsWeaknessDiscovered(MonsterName) && Monster->ElementalProfile.bHasWeakness)
+			{
+				EncycloLine += FString::Printf(TEXT("%s (%s)     "), *MonsterName.ToString(),
+					*UEnum::GetDisplayValueAsText(Monster->ElementalProfile.Weakness).ToString());
+			}
+			else
+			{
+				EncycloLine += MonsterName.ToString() + TEXT(" (?)     ");
+			}
+		}
+		WDWidgetKit::AddRow(ContentColumn, WDWidgetKit::MakeText(Tree, NSLOCTEXT("WDUI", "HubEncyclo", "Encyclopédie — Zone 1 :"), 14, MutedText), 2.f);
+		WDWidgetKit::AddRow(ContentColumn, WDWidgetKit::MakeText(Tree, FText::FromString(EncycloLine), 13, FLinearColor(0.8f, 0.82f, 0.9f)), 10.f);
+	}
+
 	// --- Options: quality + language ---
 	if (Settings)
 	{
@@ -228,14 +291,36 @@ void UWDHubWidget::RebuildContent()
 	}
 
 	// --- Launch ---
-	UButton* StartButton = WDWidgetKit::MakeTextButton(Tree, NSLOCTEXT("WDUI", "HubStart", "⚔  LANCER LE STAGE 1"), 24);
+	UButton* StartButton = WDWidgetKit::MakeTextButton(Tree,
+		FText::Format(NSLOCTEXT("WDUI", "HubStart", "⚔  LANCER LE STAGE {0}"), SelectedStage), 24);
+	StartButton->SetIsEnabled(Progression->IsStageUnlocked(SelectedStage, SelectedMode));
 	StartButton->OnClicked.AddDynamic(this, &UWDHubWidget::HandleStartStage);
 	WDWidgetKit::AddRow(ContentColumn, StartButton, 0.f);
 }
 
 void UWDHubWidget::HandleStartStage()
 {
-	OnStartStageRequested.Broadcast();
+	OnStartStageRequested.Broadcast(SelectedStage, SelectedMode);
+}
+
+void UWDHubWidget::SelectStage(int32 StageNumber)
+{
+	SelectedStage = StageNumber;
+	ScheduleRefresh();
+}
+
+void UWDHubWidget::SelectMode(EWDDifficulty Mode)
+{
+	SelectedMode = Mode;
+	// The stage chain is per mode — fall back to the highest unlocked stage of this mode.
+	if (const UWDProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWDProgressionSubsystem>())
+	{
+		while (SelectedStage > 1 && !Progression->IsStageUnlocked(SelectedStage, SelectedMode))
+		{
+			--SelectedStage;
+		}
+	}
+	ScheduleRefresh();
 }
 
 void UWDHubWidget::HandleUpgradeWall()

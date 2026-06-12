@@ -31,10 +31,16 @@ namespace WDProgressionMath
 		return 350.f + 30.f * (Level - 1);
 	}
 
-	/** Each weapon level adds flat damage (the 1-100 milestone behaviors arrive at step 7). */
+	/** Each weapon level adds flat damage (the 1-100 milestone behaviors arrive with the content pass). */
 	inline float WeaponDamageMultiplier(int32 WeaponLevel)
 	{
 		return 1.f + 0.08f * (WeaponLevel - 1);
+	}
+
+	/** The Special is the level-100 effect, weaker at low level — it scales with the weapon (GDD §5.1). */
+	inline float SpecialDamageMultiplier(int32 WeaponLevel)
+	{
+		return 4.f + 0.1f * WeaponLevel;
 	}
 
 	/** Which material tier the next weapon level costs (GDD §2.5: ~1-40 / 41-70 / 71-100). */

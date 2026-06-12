@@ -1,8 +1,8 @@
 #include "Core/WDSettingsSubsystem.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Engine/Engine.h"
-#include "Internationalization/Internationalization.h"
 #include "Internationalization/TextLocalizationManager.h"
+#include "Internationalization/TextLocalizationResource.h"
 #include "Misc/App.h"
 #include "Misc/ConfigCacheIni.h"
 
@@ -19,6 +19,51 @@ namespace
 		default:                      return TEXT("VolumeMaster");
 		}
 	}
+
+	/**
+	 * The game's UI strings (namespace WDUI), French source -> English. Applied as a LIVE
+	 * localization resource: no compiled .locres needed, the editor language never changes,
+	 * and every visible FText refreshes instantly. The Localization Dashboard pipeline
+	 * (8 languages, .po exports) replaces this table at the content pass — same keys.
+	 * RULE: French strings here must match the NSLOCTEXT sources EXACTLY (hash-checked).
+	 */
+	struct FWDUIString { const TCHAR* Key; const TCHAR* French; const TCHAR* English; };
+	const FWDUIString GWDUIStrings[] =
+	{
+		{ TEXT("LoadingTitle"),     TEXT("CHARGEMENT…"),                                TEXT("LOADING…") },
+		{ TEXT("PauseTitle"),       TEXT("PAUSE"),                                      TEXT("PAUSED") },
+		{ TEXT("PauseResume"),      TEXT("Reprendre"),                                  TEXT("Resume") },
+		{ TEXT("PauseAbandon"),     TEXT("Abandonner (défaite, loot conservé)"),        TEXT("Abandon (defeat, loot kept)") },
+		{ TEXT("SummaryVictory"),   TEXT("VICTOIRE !"),                                 TEXT("VICTORY!") },
+		{ TEXT("SummaryDefeat"),    TEXT("DÉFAITE — le loot est conservé"),             TEXT("DEFEAT — your loot is kept") },
+		{ TEXT("SummaryMult"),      TEXT("Multiplicateur de récompenses : ×{0}"),       TEXT("Reward multiplier: ×{0}") },
+		{ TEXT("SummaryGold"),      TEXT("Or  +{0}"),                                   TEXT("Gold  +{0}") },
+		{ TEXT("SummaryGoldBonus"), TEXT("Or  +{0}  (dont bonus d'étoiles +{1})"),      TEXT("Gold  +{0}  (incl. star bonus +{1})") },
+		{ TEXT("SummaryXP"),        TEXT("XP  +{0}  (niveau du personnage : {1})"),     TEXT("XP  +{0}  (character level: {1})") },
+		{ TEXT("SummaryReplay"),    TEXT("Rejouer"),                                    TEXT("Replay") },
+		{ TEXT("SummaryMenu"),      TEXT("Quartier général"),                           TEXT("Headquarters") },
+		{ TEXT("HubTitle"),         TEXT("WALL DEFENSE — QUARTIER GÉNÉRAL"),            TEXT("WALL DEFENSE — HEADQUARTERS") },
+		{ TEXT("HubWallet"),        TEXT("Or : {0}      Niveau : {1}  ({2} XP)"),       TEXT("Gold: {0}      Level: {1}  ({2} XP)") },
+		{ TEXT("HubBest"),          TEXT("Meilleur score — Stage {0} : {1}"),           TEXT("Best score — Stage {0}: {1}") },
+		{ TEXT("HubWall"),          TEXT("Mur — Niveau {0}/{1}"),                       TEXT("Wall — Level {0}/{1}") },
+		{ TEXT("HubWallUp"),        TEXT("Améliorer — {0} or"),                         TEXT("Upgrade — {0} gold") },
+		{ TEXT("HubWeapon"),        TEXT("{0} — Nv {1}"),                               TEXT("{0} — Lv {1}") },
+		{ TEXT("HubWeaponUp"),      TEXT("Améliorer — {0} or + {1} {2}"),               TEXT("Upgrade — {0} gold + {1} {2}") },
+		{ TEXT("HubSlots"),         TEXT("Sauvegarde :"),                               TEXT("Save:") },
+		{ TEXT("HubStages"),        TEXT("Stage :"),                                    TEXT("Stage:") },
+		{ TEXT("HubMode"),          TEXT("Mode :"),                                     TEXT("Mode:") },
+		{ TEXT("ModeNormal"),       TEXT("Normal"),                                     TEXT("Normal") },
+		{ TEXT("ModeHard"),         TEXT("Hard"),                                       TEXT("Hard") },
+		{ TEXT("ModeHell"),         TEXT("Enfer"),                                      TEXT("Hell") },
+		{ TEXT("HubEncyclo"),       TEXT("Encyclopédie — Zone 1 :"),                    TEXT("Encyclopedia — Zone 1:") },
+		{ TEXT("HubQuality"),       TEXT("Qualité :"),                                  TEXT("Quality:") },
+		{ TEXT("QLow"),             TEXT("Basse"),                                      TEXT("Low") },
+		{ TEXT("QMedium"),          TEXT("Moyenne"),                                    TEXT("Medium") },
+		{ TEXT("QHigh"),            TEXT("Haute"),                                      TEXT("High") },
+		{ TEXT("QEpic"),            TEXT("Épique"),                                     TEXT("Epic") },
+		{ TEXT("HubLanguage"),      TEXT("Langue :"),                                   TEXT("Language:") },
+		{ TEXT("HubStart"),         TEXT("⚔  LANCER LE STAGE {0}"),                     TEXT("⚔  LAUNCH STAGE {0}") },
+	};
 }
 
 void UWDSettingsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -34,16 +79,18 @@ void UWDSettingsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UWDSettingsSubsystem::ApplyLanguage(const FString& Culture)
 {
-#if WITH_EDITOR
-	if (GIsEditor)
+	// Push the game's translations as a LIVE localization resource: visible immediately,
+	// works with zero compiled .locres, and NEVER touches the editor language (the culture
+	// of the process is left alone — only the WDUI namespace entries change).
+	const bool bEnglish = Culture.StartsWith(TEXT("en"));
+
+	FTextLocalizationResource Resource;
+	for (const FWDUIString& Entry : GWDUIStrings)
 	{
-		// PIE/editor: preview the GAME's localization only — Pierre's editor stays in its own language.
-		FTextLocalizationManager::Get().EnableGameLocalizationPreview(Culture);
-		return;
+		Resource.AddEntry(FTextKey(TEXT("WDUI")), FTextKey(Entry.Key), Entry.French,
+			bEnglish ? Entry.English : Entry.French, /*Priority=*/0);
 	}
-#endif
-	// Packaged game: the whole process IS the game — switch it for real.
-	FInternationalization::Get().SetCurrentCulture(Culture);
+	FTextLocalizationManager::Get().UpdateFromLocalizationResource(Resource);
 }
 
 void UWDSettingsSubsystem::LoadFromConfig()

@@ -5,6 +5,7 @@
 #include "Weapons/WDWeaponInventoryComponent.h"
 #include "Weapons/WDWeaponComponent.h"
 #include "Weapons/WDWeaponData.h"
+#include "Weapons/WDSpecialAbilityComponent.h"
 #include "UI/WDPauseWidget.h"
 #include "GameModes/WDStageGameMode.h"
 #include "Blueprint/UserWidget.h"
@@ -48,6 +49,7 @@ void AWDHeroController::SetupInputComponent()
 	Input->BindAction(FireAction, ETriggerEvent::Started, this, &AWDHeroController::OnFireStarted);
 	Input->BindAction(FireAction, ETriggerEvent::Completed, this, &AWDHeroController::OnFireCompleted);
 	Input->BindAction(NextWeaponAction, ETriggerEvent::Started, this, &AWDHeroController::OnNextWeapon);
+	Input->BindAction(SpecialAction, ETriggerEvent::Started, this, &AWDHeroController::OnSpecial);
 	Input->BindAction(PauseAction, ETriggerEvent::Started, this, &AWDHeroController::OnTogglePause);
 }
 
@@ -103,6 +105,12 @@ void AWDHeroController::BuildInputObjects()
 	MappingContext->MapKey(NextWeaponAction, EKeys::MouseScrollDown);
 	MappingContext->MapKey(NextWeaponAction, EKeys::Tab);
 	MappingContext->MapKey(NextWeaponAction, EKeys::Gamepad_RightShoulder);
+
+	// --- Special (the big nova: Space, or left trigger) ---
+	SpecialAction = NewObject<UInputAction>(this, TEXT("IA_Special"));
+	SpecialAction->ValueType = EInputActionValueType::Boolean;
+	MappingContext->MapKey(SpecialAction, EKeys::SpaceBar);
+	MappingContext->MapKey(SpecialAction, EKeys::Gamepad_LeftTrigger);
 
 	// --- Pause (P in PIE — Escape stops the PIE session; Start on gamepad) ---
 	PauseAction = NewObject<UInputAction>(this, TEXT("IA_Pause"));
@@ -202,6 +210,14 @@ void AWDHeroController::OnNextWeapon(const FInputActionValue& Value)
 			Debug->DrawText(Hero->GetActorLocation() + FVector(0, 0, 140.f), Weapon->DisplayName.ToString(), Weapon->Element, 1.f);
 			Debug->DrawGroundCircle(Hero->GetActorLocation(), 150.f, Weapon->Element, 1.f);
 		}
+	}
+}
+
+void AWDHeroController::OnSpecial(const FInputActionValue& Value)
+{
+	if (AWDHeroCharacter* Hero = GetHero())
+	{
+		Hero->GetSpecial()->TryActivate();
 	}
 }
 

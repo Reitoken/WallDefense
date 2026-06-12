@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/WDTypes.h"
 #include "WDStageDirector.generated.h"
 
 class UWDStageData;
@@ -26,7 +27,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Arms the director. Target = what the monsters attack (the wall). */
-	void Configure(UWDStageData* InStage, AActor* InTarget, const FVector& InSpawnCenter, float InSpawnHalfWidth);
+	void Configure(UWDStageData* InStage, AActor* InTarget, const FVector& InSpawnCenter, float InSpawnHalfWidth,
+		EWDDifficulty InDifficulty = EWDDifficulty::Normal);
 
 	UFUNCTION(BlueprintCallable, Category = "WD|Stage")
 	void StartStage();
@@ -62,6 +64,7 @@ private:
 	TSet<TObjectPtr<AWDMonster>> AliveMonsters;
 
 	TWeakObjectPtr<AActor> Target;
+	EWDDifficulty Difficulty = EWDDifficulty::Normal;
 	FVector SpawnCenter = FVector::ZeroVector;
 	float SpawnHalfWidth = 800.f;
 	int32 CurrentWaveIndex = -1;

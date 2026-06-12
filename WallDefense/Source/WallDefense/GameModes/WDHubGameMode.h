@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Core/WDTypes.h"
 #include "WDHubGameMode.generated.h"
 
 class UWDHubWidget;
@@ -24,7 +25,7 @@ public:
 
 protected:
 	UFUNCTION()
-	void HandleStartStageRequested();
+	void HandleStartStageRequested(int32 StageNumber, EWDDifficulty Mode);
 
 private:
 	UPROPERTY(Transient)

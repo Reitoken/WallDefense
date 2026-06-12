@@ -36,6 +36,7 @@ protected:
 	void OnFireStarted(const FInputActionValue& Value);
 	void OnFireCompleted(const FInputActionValue& Value);
 	void OnNextWeapon(const FInputActionValue& Value);
+	void OnSpecial(const FInputActionValue& Value);
 	void OnTogglePause(const FInputActionValue& Value);
 
 	/** Pause menu choices (GDD §11: abandoning = defeat, run loot kept). */
@@ -55,6 +56,7 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UInputAction> AimAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> FireAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> NextWeaponAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> SpecialAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> PauseAction;
 
 private:

@@ -38,9 +38,10 @@ void AWDHubGameMode::StartPlay()
 	}
 }
 
-void AWDHubGameMode::HandleStartStageRequested()
+void AWDHubGameMode::HandleStartStageRequested(int32 StageNumber, EWDDifficulty Mode)
 {
-	// Same map, stage rules — the URL option overrides the world's GameMode.
+	// Same map, stage rules — the URL options carry the choice (stage + mode).
 	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)), true,
-		TEXT("game=/Script/WallDefense.WDStageGameMode"));
+		FString::Printf(TEXT("game=/Script/WallDefense.WDStageGameMode?WDStage=%d?WDMode=%d"),
+			StageNumber, static_cast<int32>(Mode)));
 }

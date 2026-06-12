@@ -32,8 +32,9 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	/** Brings a sheet to life: stats = sheet multipliers × stage bases. Target = the wall. */
-	void InitFromData(UWDMonsterData* Data, float StageBaseHealth, float StageBaseWallDamage, AActor* Target);
+	/** Brings a sheet to life: stats = sheet × stage bases × difficulty mode. Target = the wall. */
+	void InitFromData(UWDMonsterData* Data, float StageBaseHealth, float StageBaseWallDamage, AActor* Target,
+		EWDDifficulty Difficulty = EWDDifficulty::Normal);
 
 	/** Repulsion wave (wall skill): loses ground along its advance and resumes. */
 	UFUNCTION(BlueprintCallable, Category = "WD|Monster")

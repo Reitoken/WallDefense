@@ -45,6 +45,13 @@ struct FWDProgressionState
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression")
 	TArray<FWDStageRecord> StageRecords;
+
+	/** Encyclopedia (GDD §2.4): monsters met, weaknesses confirmed by a weakness hit. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression")
+	TArray<FName> KnownMonsters;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression")
+	TArray<FName> KnownWeaknesses;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWDOnGoldChanged, int32, NewGold);
@@ -52,6 +59,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWDOnXPChanged, int32, NewXP, int32
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWDOnResourceChanged, const FWDResourceStack&, Stack);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWDOnWallUpgraded, int32, NewLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWDOnWeaponLeveledUp, EWDElement, Element, int32, NewLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWDOnDiscovery, FName, MonsterName, bool, bWeakness);
 
 /**
  * The player's meta state (ArchitectureTechnique §5): gold, elemental resources,
@@ -119,6 +127,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WD|Progression")
 	FWDLootBundle ApplyRunRewards(const FWDLootBundle& RunLoot, float Multiplier);
 
+	/** GDD §2.1/§2.5: stage N needs N-1 done in the same mode; Hard/Hell need the easier mode done on that stage. */
+	UFUNCTION(BlueprintPure, Category = "WD|Progression")
+	bool IsStageUnlocked(int32 StageNumber, EWDDifficulty Mode) const;
+
+	// --- Encyclopedia discoveries (GDD §2.4) ---
+	UFUNCTION(BlueprintCallable, Category = "WD|Progression")
+	bool RegisterMonsterDiscovered(FName MonsterName);
+
+	UFUNCTION(BlueprintCallable, Category = "WD|Progression")
+	bool RegisterWeaknessDiscovered(FName MonsterName);
+
+	UFUNCTION(BlueprintPure, Category = "WD|Progression")
+	bool IsMonsterDiscovered(FName MonsterName) const { return State.KnownMonsters.Contains(MonsterName); }
+
+	UFUNCTION(BlueprintPure, Category = "WD|Progression")
+	bool IsWeaknessDiscovered(FName MonsterName) const { return State.KnownWeaknesses.Contains(MonsterName); }
+
 	// --- Snapshot (SaveSubsystem only) ---
 	const FWDProgressionState& GetState() const { return State; }
 	void SetState(const FWDProgressionState& NewState);
@@ -139,6 +164,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "WD|Progression")
 	FWDOnWeaponLeveledUp OnWeaponLeveledUp;
+
+	UPROPERTY(BlueprintAssignable, Category = "WD|Progression")
+	FWDOnDiscovery OnDiscovery;
 
 private:
 	FWDResourceStack* FindStack(EWDElement Element, EWDResourceTier Tier);

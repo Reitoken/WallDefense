@@ -42,9 +42,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|HitResponse", meta = (ClampMin = "0.0"))
 	float FlashDuration = 0.1f;
 
-	/** Recoil announced to the owner on every hit (0 = none). */
+	/** Recoil announced to the owner on hit. 0 by default: only the WIND weapon pushes (GDD §5.2). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|HitResponse", meta = (ClampMin = "0.0"))
-	float KnockbackDistance = 25.f;
+	float KnockbackDistance = 0.f;
 
 	/** Local mesh jitter on impact — needs the mesh to be a CHILD of the actor root. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|HitResponse", meta = (ClampMin = "0.0"))

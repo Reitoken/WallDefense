@@ -7,14 +7,16 @@
 
 class UVerticalBox;
 class UWDWeaponData;
+class UWDMonsterData;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWDOnHubChoice);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWDOnStartStageRequested, int32, StageNumber, EWDDifficulty, Mode);
 
 /**
- * The minimal hub (GDD §11): wallet, wall & weapon upgrades, save slots, quality &
- * language, launch. Event-driven: subscribes to the Progression and rebuilds its
- * content on any change (ArchitectureTechnique §7 binding pattern). Debug-first
- * code-built tree; widgets do zero game logic — every click calls a subsystem.
+ * The minimal hub (GDD §11): wallet, wall & weapon upgrades, stage & mode select
+ * (with the unlock chain), encyclopedia with its ????? mystery, save slots,
+ * quality & language, launch. Event-driven: subscribes to the Progression and
+ * rebuilds its content on any change (ArchitectureTechnique §7 binding pattern).
+ * Debug-first code-built tree; widgets do zero game logic — clicks call subsystems.
  */
 UCLASS(Blueprintable)
 class WALLDEFENSE_API UWDHubWidget : public UUserWidget
@@ -23,7 +25,7 @@ class WALLDEFENSE_API UWDHubWidget : public UUserWidget
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = "WD|UI")
-	FWDOnHubChoice OnStartStageRequested;
+	FWDOnStartStageRequested OnStartStageRequested;
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -54,6 +56,16 @@ protected:
 	UFUNCTION() void HandleSlot3() { SelectSlot(3); }
 	UFUNCTION() void HandleSlot4() { SelectSlot(4); }
 
+	UFUNCTION() void HandleStage1() { SelectStage(1); }
+	UFUNCTION() void HandleStage2() { SelectStage(2); }
+	UFUNCTION() void HandleStage3() { SelectStage(3); }
+	UFUNCTION() void HandleStage4() { SelectStage(4); }
+	UFUNCTION() void HandleStage5() { SelectStage(5); }
+
+	UFUNCTION() void HandleModeNormal() { SelectMode(EWDDifficulty::Normal); }
+	UFUNCTION() void HandleModeHard()   { SelectMode(EWDDifficulty::Hard); }
+	UFUNCTION() void HandleModeHell()   { SelectMode(EWDDifficulty::Hell); }
+
 	UFUNCTION() void HandleQualityLow()    { SetQuality(0); }
 	UFUNCTION() void HandleQualityMedium() { SetQuality(1); }
 	UFUNCTION() void HandleQualityHigh()   { SetQuality(2); }
@@ -65,6 +77,8 @@ protected:
 private:
 	void TryUpgradeWeapon(EWDElement Element);
 	void SelectSlot(int32 SlotIndex);
+	void SelectStage(int32 StageNumber);
+	void SelectMode(EWDDifficulty Mode);
 	void SetQuality(int32 QualityLevel);
 	void SetLanguage(const TCHAR* Culture);
 	void ScheduleRefresh();
@@ -73,9 +87,14 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> ContentColumn;
 
-	/** Transient preview arsenal: weapon names/elements for the upgrade rows. */
+	/** Transient previews: weapon names/elements + zone 1 bestiary for the encyclopedia. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UWDWeaponData>> Arsenal;
 
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UWDMonsterData>> Bestiary;
+
+	int32 SelectedStage = 1;
+	EWDDifficulty SelectedMode = EWDDifficulty::Normal;
 	bool bRefreshScheduled = false;
 };

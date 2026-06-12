@@ -185,6 +185,47 @@ FWDLootBundle UWDProgressionSubsystem::ApplyRunRewards(const FWDLootBundle& RunL
 	return Granted;
 }
 
+bool UWDProgressionSubsystem::IsStageUnlocked(int32 StageNumber, EWDDifficulty Mode) const
+{
+	// Within a mode: the previous stage must be finished.
+	if (StageNumber > 1 && GetBestStars(StageNumber - 1, Mode) < 0)
+	{
+		return false;
+	}
+	// Across modes: Hard needs the stage done in Normal, Hell needs it done in Hard (GDD §2.5).
+	if (Mode == EWDDifficulty::Hard && GetBestStars(StageNumber, EWDDifficulty::Normal) < 0)
+	{
+		return false;
+	}
+	if (Mode == EWDDifficulty::Hell && GetBestStars(StageNumber, EWDDifficulty::Hard) < 0)
+	{
+		return false;
+	}
+	return true;
+}
+
+bool UWDProgressionSubsystem::RegisterMonsterDiscovered(FName MonsterName)
+{
+	if (MonsterName.IsNone() || State.KnownMonsters.Contains(MonsterName))
+	{
+		return false;
+	}
+	State.KnownMonsters.Add(MonsterName);
+	OnDiscovery.Broadcast(MonsterName, /*bWeakness=*/false);
+	return true;
+}
+
+bool UWDProgressionSubsystem::RegisterWeaknessDiscovered(FName MonsterName)
+{
+	if (MonsterName.IsNone() || State.KnownWeaknesses.Contains(MonsterName))
+	{
+		return false;
+	}
+	State.KnownWeaknesses.Add(MonsterName);
+	OnDiscovery.Broadcast(MonsterName, /*bWeakness=*/true);
+	return true;
+}
+
 void UWDProgressionSubsystem::SetState(const FWDProgressionState& NewState)
 {
 	State = NewState;

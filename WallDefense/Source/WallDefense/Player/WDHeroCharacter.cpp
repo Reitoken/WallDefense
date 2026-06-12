@@ -5,6 +5,9 @@
 #include "Weapons/WDWeaponComponent.h"
 #include "Weapons/WDWeaponData.h"
 #include "Player/WDMagnetComponent.h"
+#include "Weapons/WDSpecialAbilityComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Core/WDTypes.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -56,6 +59,7 @@ AWDHeroCharacter::AWDHeroCharacter()
 	WeaponInventory = CreateDefaultSubobject<UWDWeaponInventoryComponent>(TEXT("WeaponInventory"));
 	WeaponComponent = CreateDefaultSubobject<UWDWeaponComponent>(TEXT("WeaponComponent"));
 	Magnet = CreateDefaultSubobject<UWDMagnetComponent>(TEXT("Magnet"));
+	Special = CreateDefaultSubobject<UWDSpecialAbilityComponent>(TEXT("Special"));
 
 	DebugNose = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugNose"));
 	DebugNose->SetupAttachment(RootComponent);
@@ -84,6 +88,14 @@ void AWDHeroCharacter::BeginPlay()
 void AWDHeroCharacter::HandleWeaponSwitched(UWDWeaponData* Weapon, int32 Index)
 {
 	WeaponComponent->SetWeapon(Weapon);
+	Special->SetWeapon(Weapon);
+
+	// Debug outfit (GDD §9.2: one outfit per weapon): the body tints with the element.
+	if (Weapon && DebugBody->GetMaterial(0))
+	{
+		const FLinearColor Tint = UWDTypeLibrary::GetElementColor(Weapon->Element) * 0.55f + FLinearColor(0.2f, 0.2f, 0.22f);
+		DebugBody->CreateAndSetMaterialInstanceDynamic(0)->SetVectorParameterValue(TEXT("Color"), Tint);
+	}
 }
 
 bool AWDHeroCharacter::IsFiring() const

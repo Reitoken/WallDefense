@@ -115,31 +115,51 @@ bool FWDZone1BestiaryTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWDDebugStageTest,
-	"WallDefense.Stage.DebugStage1",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWDZone1StagesTest,
+	"WallDefense.Stage.Zone1Stages",
 	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
-bool FWDDebugStageTest::RunTest(const FString& Parameters)
+bool FWDZone1StagesTest::RunTest(const FString& Parameters)
 {
-	const UWDStageData* Stage = UWDStageData::MakeDebugStage1(GetTransientPackage());
-
-	TestEqual(TEXT("5 waves"), Stage->Waves.Num(), 5);
-
-	bool bBossInLastWave = false;
-	for (int32 i = 0; i < Stage->Waves.Num(); ++i)
+	// GDD §2.1/§6.3: 2 types at stage 1, +1 new per stage, the whole cast + boss at stage 5.
+	for (int32 StageNumber = 1; StageNumber <= 5; ++StageNumber)
 	{
-		const FWDWaveDef& Wave = Stage->Waves[i];
-		TestTrue(TEXT("No empty wave"), Wave.Entries.Num() > 0);
-		TestTrue(TEXT("Sane inter-wave timer"), Wave.TimeBeforeNextWave >= 1.f);
-		for (const FWDWaveEntry& Entry : Wave.Entries)
+		const UWDStageData* Stage = UWDStageData::MakeZone1Stage(GetTransientPackage(), StageNumber);
+		TestEqual(TEXT("Stage number kept"), Stage->StageNumber, StageNumber);
+		TestTrue(TEXT("At least 3 waves"), Stage->Waves.Num() >= 3);
+
+		TSet<FString> DistinctTypes;
+		bool bHasBoss = false;
+		bool bBossInLastWave = false;
+		for (int32 i = 0; i < Stage->Waves.Num(); ++i)
 		{
-			TestTrue(TEXT("Valid monster and count"), Entry.Monster != nullptr && Entry.Count >= 1);
-			if (i == Stage->Waves.Num() - 1 && Entry.Monster && Entry.Monster->Role == EWDMonsterRole::Boss)
+			const FWDWaveDef& Wave = Stage->Waves[i];
+			TestTrue(TEXT("No empty wave"), Wave.Entries.Num() > 0);
+			TestTrue(TEXT("Sane inter-wave timer"), Wave.TimeBeforeNextWave >= 1.f);
+			for (const FWDWaveEntry& Entry : Wave.Entries)
 			{
-				bBossInLastWave = true;
+				TestTrue(TEXT("Valid monster and count"), Entry.Monster != nullptr && Entry.Count >= 1);
+				DistinctTypes.Add(Entry.Monster->DisplayName.ToString());
+				if (Entry.Monster->Role == EWDMonsterRole::Boss)
+				{
+					bHasBoss = true;
+					bBossInLastWave = (i == Stage->Waves.Num() - 1);
+				}
 			}
 		}
+		// +1 new type per stage: stage 1 = 2 types ... stage 5 = 5 types + the boss = 6.
+		TestEqual(TEXT("Type count follows the +1 per stage rule"), DistinctTypes.Num(), StageNumber + 1);
+		TestEqual(TEXT("Boss only at stage 5"), bHasBoss, StageNumber == 5);
+		if (StageNumber == 5)
+		{
+			TestTrue(TEXT("The boss closes the zone"), bBossInLastWave);
+		}
 	}
-	TestTrue(TEXT("The boss closes the stage"), bBossInLastWave);
+
+	// Bases scale up with the stage number.
+	const UWDStageData* First = UWDStageData::MakeZone1Stage(GetTransientPackage(), 1);
+	const UWDStageData* Last = UWDStageData::MakeZone1Stage(GetTransientPackage(), 5);
+	TestTrue(TEXT("Stage 5 monsters out-health stage 1"), Last->BaseHealth > First->BaseHealth);
+	TestTrue(TEXT("Stage 5 hits the wall harder"), Last->BaseWallDamage > First->BaseWallDamage);
 	return true;
 }
 

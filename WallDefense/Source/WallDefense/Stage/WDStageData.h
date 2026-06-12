@@ -54,6 +54,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage")
 	TArray<FWDWaveDef> Waves;
 
-	/** Demo stage: 5 waves escalating through the zone 1 bestiary, boss in the last. */
-	static UWDStageData* MakeDebugStage1(UObject* Outer);
+	/** Zone 1, stages 1-5 (GDD §2.1): 2 monster types at stage 1, +1 new per stage, boss at stage 5. */
+	static UWDStageData* MakeZone1Stage(UObject* Outer, int32 StageNumber);
+
+	/** Back-compat alias for the demo flow: zone 1, stage 1. */
+	static UWDStageData* MakeDebugStage1(UObject* Outer) { return MakeZone1Stage(Outer, 1); }
 };

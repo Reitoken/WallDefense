@@ -6,7 +6,10 @@
 #include "Loot/WDLootDropComponent.h"
 #include "Combat/WDHealthComponent.h"
 #include "Combat/WDHitResponseComponent.h"
+#include "Stage/WDDifficultyMath.h"
+#include "Core/WDProgressionSubsystem.h"
 #include "Core/WDDebugSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
@@ -47,7 +50,8 @@ AWDMonster::AWDMonster()
 	LootDrop = CreateDefaultSubobject<UWDLootDropComponent>(TEXT("LootDrop"));
 }
 
-void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float StageBaseWallDamage, AActor* Target)
+void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float StageBaseWallDamage, AActor* Target,
+	EWDDifficulty Difficulty)
 {
 	if (!Data)
 	{
@@ -73,30 +77,57 @@ void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float
 		Material->SetVectorParameterValue(TEXT("Color"), Tint);
 	}
 
-	// Stats: sheet multipliers × stage bases.
+	// Stats: sheet multipliers × stage bases × difficulty mode (GDD §2.5).
 	Health->ElementalProfile = Data->ElementalProfile;
 	Health->Defense = Data->Defense;
-	Health->SetMaxHealth(StageBaseHealth * Data->HealthMultiplier, /*bRefill=*/true);
+	Health->SetMaxHealth(StageBaseHealth * Data->HealthMultiplier * WDDifficultyMath::HealthMultiplier(Difficulty), /*bRefill=*/true);
 	if (Data->ShieldFraction > 0.f)
 	{
 		Health->AddShield(Health->GetMaxHealth() * Data->ShieldFraction);
 	}
 
+	// Harder modes pile EXTRA resistances on the sheet (never on the weakness).
+	int32 ExtraLeft = WDDifficultyMath::ExtraResistances(Difficulty);
+	for (const EWDElement Candidate : { EWDElement::Fire, EWDElement::Ice, EWDElement::Lightning, EWDElement::Wind, EWDElement::Light, EWDElement::Dark })
+	{
+		if (ExtraLeft <= 0)
+		{
+			break;
+		}
+		const bool bIsWeakness = Health->ElementalProfile.bHasWeakness && Health->ElementalProfile.Weakness == Candidate;
+		if (!bIsWeakness && !Health->ElementalProfile.Resistances.Contains(Candidate))
+		{
+			Health->ElementalProfile.Resistances.Add(Candidate);
+			--ExtraLeft;
+		}
+	}
+
 	// Wiring (the actor is the ONLY place that knows its components together).
 	MovePattern->Configure(Data->Pattern, Data->Speed, Target, Data->bRangedAttack ? Data->AttackRange * 0.9f : Data->AttackRange * 0.8f);
-	WallAttack->Configure(Target, StageBaseWallDamage * Data->WallDamageMultiplier, Data->AttackRange, Data->AttackInterval, Data->bRangedAttack, EWDElement::Normal);
 	HealAura->Configure(Data->HealPulseAmount, Data->HealPulseInterval, Data->HealPulseRadius, EWDElement::Ice);
 	HitResponse->Configure(Body, Tint, Data->Role == EWDMonsterRole::Boss);
 	// Drops: the monster's elemental material = its weakness (the same color signage).
-	// Tier follows the difficulty mode at step 7 — Normal drops Fragments for now (GDD §2.5).
+	// Each mode drops its own tier and pays better (GDD §2.5).
 	const EWDElement ResourceElement = Data->ElementalProfile.bHasWeakness ? Data->ElementalProfile.Weakness : EWDElement::Normal;
-	LootDrop->Configure(Data->GoldDropMin, Data->GoldDropMax, Data->XPDrop, Data->ResourceDropChance,
-		Data->ResourceDropAmount, ResourceElement, EWDResourceTier::Fragments);
+	const float DropMult = WDDifficultyMath::DropAmountMultiplier(Difficulty);
+	LootDrop->Configure(
+		FMath::CeilToInt32(Data->GoldDropMin * DropMult), FMath::CeilToInt32(Data->GoldDropMax * DropMult),
+		FMath::CeilToInt32(Data->XPDrop * DropMult), Data->ResourceDropChance,
+		FMath::CeilToInt32(Data->ResourceDropAmount * DropMult), ResourceElement, WDDifficultyMath::DropTier(Difficulty));
+
+	WallAttack->Configure(Target, StageBaseWallDamage * Data->WallDamageMultiplier * WDDifficultyMath::WallDamageMultiplier(Difficulty),
+		Data->AttackRange, Data->AttackInterval, Data->bRangedAttack, EWDElement::Normal);
 
 	Health->OnDamaged.AddDynamic(this, &AWDMonster::HandleDamagedForward);
 	Health->OnDied.AddDynamic(this, &AWDMonster::HandleDied);
 	// Knockback recoils along the monster's OWN advance axis: away from the wall, always.
 	HitResponse->OnKnockbackRequested.AddDynamic(this, &AWDMonster::HandleKnockback);
+
+	// Encyclopedia: meeting a monster reveals its page (GDD §2.4).
+	if (UWDProgressionSubsystem* Progression = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWDProgressionSubsystem>() : nullptr)
+	{
+		Progression->RegisterMonsterDiscovered(FName(*Data->DisplayName.ToString()));
+	}
 }
 
 void AWDMonster::HandleKnockback(float Distance)
@@ -145,6 +176,15 @@ void AWDMonster::Tick(float DeltaSeconds)
 void AWDMonster::HandleDamagedForward(const FWDDamageEvent& DamageEvent, float AppliedDamage, EWDElementalMatch Match)
 {
 	HitResponse->HandleDamaged(DamageEvent, AppliedDamage, Match);
+
+	// Encyclopedia: landing a weakness hit confirms it on the monster's page (GDD §2.4).
+	if (Match == EWDElementalMatch::Weakness && MonsterData)
+	{
+		if (UWDProgressionSubsystem* Progression = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWDProgressionSubsystem>() : nullptr)
+		{
+			Progression->RegisterWeaknessDiscovered(FName(*MonsterData->DisplayName.ToString()));
+		}
+	}
 }
 
 void AWDMonster::HandleDied(AActor* Killer)

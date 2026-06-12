@@ -92,6 +92,9 @@
   <div class="grp">Étape 6 — La méta</div>
   <a href="#etape6">Ce qui est implémenté</a>
   <a href="#tester6">Comment tester (étape 6)</a>
+  <div class="grp">Étape 7 — Le reste (cœur)</div>
+  <a href="#etape7">Ce qui est implémenté</a>
+  <a href="#tester7">Comment tester (étape 7)</a>
   <div class="grp">Validation</div>
   <a href="#tests">Tests automatisés</a>
   <div class="grp">Référence</div>
@@ -106,9 +109,9 @@
   <p><strong>Wall Defense</strong> — tower defense incarné, vue top-down : une héroïne défend son mur contre des vagues de monstres dimensionnels en switchant entre <strong>7 armes élémentaires</strong>. 30 stages (6 zones), 3 modes, stage infini.</p>
   <p class="muted">Architecture : composants indépendants · communication par délégués · DataAssets comme ponts de données · UI event-driven · debug-first. Référence complète : <span class="mono">ArchitectureTechnique.md</span>.</p>
   <div class="kpis">
-    <div class="kpi"><div class="v">6/7</div><div class="l">Étapes terminées</div></div>
-    <div class="kpi"><div class="v" id="kpi-tests">37/37</div><div class="l">Tests auto validés</div></div>
-    <div class="kpi"><div class="v">44</div><div class="l">Classes livrées</div></div>
+    <div class="kpi"><div class="v">7/7</div><div class="l">Étapes — cœur gameplay livré</div></div>
+    <div class="kpi"><div class="v" id="kpi-tests">41/41</div><div class="l">Tests auto validés</div></div>
+    <div class="kpi"><div class="v">46</div><div class="l">Classes livrées</div></div>
   </div>
   <p style="margin-top:14px">
     <span class="elem" style="background:var(--normal)"></span>Normal&nbsp;&nbsp;
@@ -147,9 +150,9 @@
     <div class="title">Méta <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
     <div class="desc">Loot qui droppe, expire et s'aimante · Progression (or, ressources 3 tiers, XP, niveaux d'armes/mur, étoiles) · sauvegarde 5 slots auto · hub minimal (améliorations, slots, options) · pause (abandon = défaite) · écran de résumé · Settings + benchmark au premier lancement. <strong>La boucle <em>try and become stronger</em> tourne.</strong></div>
   </div></div>
-  <div class="step"><div class="num">7</div><div class="body">
-    <div class="title">Le reste <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
-    <div class="desc">Spéciales + vidéos · paliers d'armes 1–100 · modes Hard/Enfer · encyclopédie · tenues · histoire · musique dynamique · Steam · stages 2+.</div>
+  <div class="step done"><div class="num">7</div><div class="body">
+    <div class="title">Le reste <span class="badge b-ok">CŒUR TERMINÉ</span> <span class="badge b-now">PASSE CONTENU/ASSETS À VENIR</span></div>
+    <div class="desc"><strong>Livré :</strong> Spéciales (nova par élément, cooldown partagé, scale au niveau) · modes Hard/Enfer (stats, résistances bonus, Cristaux/Noyaux, chaîne de déblocage) · stages 1–5 de la zone 1 + sélection au QG · encyclopédie avec ????? · tenue debug par arme · langue FR/EN en direct. <strong>Reste (passe contenu/assets) :</strong> vidéos de Spéciale · paliers d'armes 1–100 détaillés · zones 2–6 + stage infini · histoire · musique dynamique · Steam · remapping · localisation 8 langues (Dashboard).</div>
   </div></div>
 </div>
 
@@ -521,6 +524,69 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
      ✅ <strong>Options</strong> : qualité Basse→Épique appliquée immédiatement ; langue FR/EN (les textes restent FR tant que la localisation n'est pas compilée — étape 7).</p>
 </div>
 
+<h2 id="etape7">Étape 7 — Ce qui est implémenté (le cœur) <span class="badge b-ok">✓</span></h2>
+
+<details open>
+  <summary>Correctifs des retours de Pierre <span class="badge b-ok">corrigés</span></summary>
+  <div class="inner">
+    <table>
+      <tr><th>Retour</th><th>Correctif</th></tr>
+      <tr><td>La langue ne changeait toujours rien en jeu</td><td>la vraie cause : <strong>aucune traduction compilée n'existe encore</strong> (le Localization Dashboard arrive avec la passe de contenu). Désormais une <strong>table FR→EN de tous les textes du jeu</strong> (namespace <code>WDUI</code>) est injectée EN DIRECT dans le gestionnaire de localisation : tout l'écran bascule instantanément FR↔EN, l'éditeur n'est jamais touché, et un test automatisé verrouille le comportement</td></tr>
+      <tr><td>Le knockback à chaque coup</td><td><strong>désactivé par défaut</strong> (KnockbackDistance = 0). Seul le <strong>Canon à tornade</strong> repousse : 160 uu par impact sur les ennemis <em>légers</em> uniquement (ni Tank ni boss) — sa signature GDD §5.2. Sa Spéciale souffle tout le monde (les lourds à moitié)</td></tr>
+    </table>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">UWDSpecialAbilityComponent</span> — la Spéciale <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p><strong>Espace</strong> (ou gâchette gauche) : une <strong>nova de 20 tirs perçants</strong> de l'élément actif — chaîne pour la Foudre, souffle pour le Vent. Dégâts = l'arme × (4 + 0,1 × niveau) : c'est l'effet « palier 100 », plus faible à bas niveau (GDD §5.1). <strong>Une seule jauge</strong> de cooldown (30 s) partagée par les 7 armes — switcher ne la réinitialise pas. <code>OnSpecialCast</code> est le futur point d'accroche des cinématiques vidéo (avec les assets).</p>
+  </div>
+</details>
+
+<details open>
+  <summary>Modes Hard / Enfer + stages 1–5 de la zone 1 <span class="badge b-ok">livré + 2 tests</span></summary>
+  <div class="inner">
+    <p><strong>Les modes structurent la montée 1–100</strong> (GDD §2.5) : monstres ×2,2/×4,5 PV, dégâts au mur ×1,4/×2, <strong>+1/+2 résistances élémentaires bonus</strong> (jamais sur la faiblesse), drops ×1,6/×2,4 — et chaque mode droppe SON tier : <strong>Fragments / Cristaux / Noyaux</strong> (requis pour les niveaux d'armes 41+/71+). <strong>Chaîne de déblocage</strong> : stage N exige N−1 dans le même mode ; Hard exige le stage en Normal ; Enfer l'exige en Hard.</p>
+    <p><strong>Zone 1 complète</strong> : 5 stages générés (2 types de monstres au stage 1, +1 nouveau par stage, tout le casting + la Brute au stage 5), bases de stats croissantes. Sélection stage + mode au QG, transmise au lancement (<code>?WDStage=N?WDMode=M</code>).</p>
+  </div>
+</details>
+
+<details open>
+  <summary>Encyclopédie, tenue debug, mur méta <span class="badge b-ok">livré + 2 tests</span></summary>
+  <div class="inner">
+    <p><strong>Encyclopédie</strong> (GDD §2.4) : croiser un monstre révèle sa page (sinon <code>?????</code>), <strong>toucher sa faiblesse confirme l'élément</strong> — affichée au QG, persistée dans la sauvegarde. <strong>Tenue debug</strong> (GDD §9.2) : le corps de l'héroïne se teinte de l'élément de l'arme active à chaque switch. Et le mur en stage utilise désormais le <strong>niveau acheté au QG</strong> (oubli de l'étape 6 corrigé) — l'améliorer se ressent vraiment.</p>
+  </div>
+</details>
+
+<div class="card">
+  <strong>Fichiers créés / modifiés</strong>
+  <table>
+    <tr><td><code>Source/WallDefense/Weapons/WDSpecialAbilityComponent.h/.cpp</code></td><td class="muted">la Spéciale (nova, cooldown partagé, hook vidéo)</td></tr>
+    <tr><td><code>Source/WallDefense/Stage/WDDifficultyMath.h</code></td><td class="muted">multiplicateurs Normal/Hard/Enfer (testés)</td></tr>
+    <tr><td><code>Stage/WDStageData (MakeZone1Stage 1–5) · Monsters/WDMonster (difficulté, découvertes)</code></td><td class="muted">génération zone 1, modes</td></tr>
+    <tr><td><code>Core/WDProgressionSubsystem (découvertes, IsStageUnlocked) · WDSettingsSubsystem (table FR→EN)</code></td><td class="muted">encyclopédie, langue en direct</td></tr>
+    <tr><td><code>UI/WDHubWidget (stages, modes, encyclopédie) · GameModes (options de voyage)</code></td><td class="muted">QG enrichi</td></tr>
+    <tr><td><code>Weapons/WDProjectile (+push vent) · Combat/WDHitResponse (knockback 0)</code></td><td class="muted">le vent seul repousse</td></tr>
+    <tr><td><code>Tests/WDStepSevenTests.cpp (+ refonte du test de stages)</code></td><td class="muted">5 tests automatisés</td></tr>
+  </table>
+</div>
+
+<h2 id="tester7">Comment tester dans Unreal — Étape 7</h2>
+
+<div class="card">
+  <h3>Modes, Spéciale, encyclopédie (15 minutes)</h3>
+  <p>1. <code>L_Sandbox</code> → GameMode Override <code>WDHubGameMode</code> → <strong>Play</strong>.<br><br>
+     ✅ <strong>Langue</strong> : clique EN — TOUT le QG passe en anglais immédiatement (et l'éditeur reste en l'état). FR pour revenir. Persiste au relancement.<br>
+     ✅ <strong>Sélection</strong> : seuls Stage 1 et le mode Normal sont actifs au départ. Finis le stage 1 → le stage 2 ET le mode Hard (stage 1) s'allument.<br>
+     ✅ <strong>La Spéciale</strong> : en stage, <strong>Espace</strong> (ou gâchette gauche) — nova de l'élément actif, gros shake, 30 s de recharge partagée entre les armes.<br>
+     ✅ <strong>Le vent repousse</strong> : tornade sur des Ombrillons → ils perdent du terrain à chaque impact ; le Rempart et la Brute, non. Les autres armes ne poussent plus.<br>
+     ✅ <strong>Hard</strong> : monstres bien plus coriaces avec une résistance de plus, qui droppent des <strong>Cristaux</strong> — nécessaires aux armes niveau 41+.<br>
+     ✅ <strong>Encyclopédie</strong> : au QG, les monstres jamais croisés sont <code>?????</code> ; croise-les → leur nom apparaît avec « (?) » ; touche leur faiblesse → l'élément se confirme.<br>
+     ✅ <strong>Tenue debug</strong> : le corps de l'héroïne change de teinte à chaque switch d'arme.<br>
+     ✅ <strong>Mur méta</strong> : améliore le mur au QG → en stage il a les PV/défense/skills du niveau acheté.</p>
+</div>
+
 <h2 id="tests">Tests automatisés — dernier passage</h2>
 <div class="card">
   <table id="testtable">
@@ -549,7 +615,7 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
     <tr><td class="mono">Patterns.ChargePauseDuty</td><td>Sprint ×1,6 puis arrêt total, en cycle</td><td>✅</td></tr>
     <tr><td class="mono">Patterns.BurrowAndFlank</td><td>Fouisseur surface/sous-terre en cycle ; flanqueur converge près du mur ; sauteur jamais sous le sol</td><td>✅</td></tr>
     <tr><td class="mono">Monsters.Zone1Bestiary</td><td>6 fiches : toutes avec faiblesse, soigneuse qui soigne sans frapper le mur, tireur à distance, boss le plus costaud</td><td>✅</td></tr>
-    <tr><td class="mono">Stage.DebugStage1</td><td>5 vagues valides, chronos sains, le boss ferme le stage</td><td>✅</td></tr>
+    <tr><td class="mono">Stage.Zone1Stages</td><td>5 stages générés : 2 types au stage 1, +1 par stage, boss uniquement au 5 (en finale), bases croissantes</td><td>✅</td></tr>
     <tr><td class="mono">Stage.StarsThresholds</td><td>100 % = 3★, 66 % = 2★, 33 % = 1★, en-dessous 0★ ; multiplicateurs ×1/×1,25/×1,5/×2</td><td>✅</td></tr>
     <tr><td class="mono">Wall.DebugWallData</td><td>Niveaux croissants en PV, 3 skills aux niveaux de déblocage sains, clamp des niveaux hors bornes</td><td>✅</td></tr>
     <tr><td class="mono">Wall.SkillsFireOnce</td><td>Bouclier au départ, répulsion au premier contact, réparation sous 25 % — chacun UNE seule fois</td><td>✅</td></tr>
@@ -562,6 +628,10 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
     <tr><td class="mono">Progression.WalletAndUpgrades</td><td>Portefeuille sûr (échec = zéro dépense), arme +1 = or + matériau, mur plafonné</td><td>✅</td></tr>
     <tr><td class="mono">Progression.RunRewardsAndStars</td><td>Récompenses ×1,5 créditées ; étoiles par stage×mode, le meilleur score est gardé</td><td>✅</td></tr>
     <tr><td class="mono">Save.RoundTrip</td><td>État complet sérialisé puis restauré à l'identique (or, XP, ressources, étoiles)</td><td>✅</td></tr>
+    <tr><td class="mono">Difficulty.ModeMultipliers</td><td>Hard/Enfer : PV, dégâts mur et drops croissants ; +1/+2 résistances ; tiers Fragments/Cristaux/Noyaux ; Spéciale qui scale</td><td>✅</td></tr>
+    <tr><td class="mono">Progression.UnlockChain</td><td>Stage N exige N−1 ; Hard exige le Normal du stage ; Enfer exige le Hard</td><td>✅</td></tr>
+    <tr><td class="mono">Progression.EncyclopediaDiscoveries</td><td>Rencontre et faiblesse découvertes UNE fois chacune, persistées</td><td>✅</td></tr>
+    <tr><td class="mono">Settings.LiveLanguageSwitch</td><td>EN appliqué en direct aux textes du jeu (motifs {0} compris), FR restauré — sans toucher la culture du process</td><td>✅</td></tr>
   </table>
   <p class="muted">Exécution headless (sans ouvrir l'éditeur) :</p>
   <pre>& "C:\Unreal Engine\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `

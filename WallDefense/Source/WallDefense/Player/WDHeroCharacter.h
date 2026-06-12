@@ -11,6 +11,7 @@ class UWDWeaponInventoryComponent;
 class UWDWeaponComponent;
 class UWDWeaponData;
 class UWDMagnetComponent;
+class UWDSpecialAbilityComponent;
 
 /**
  * The top-down heroine (free movement, Zelda-like camera).
@@ -56,6 +57,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "WD|Hero")
 	UWDMagnetComponent* GetMagnet() const { return Magnet; }
 
+	UFUNCTION(BlueprintPure, Category = "WD|Hero")
+	UWDSpecialAbilityComponent* GetSpecial() const { return Special; }
+
 	UFUNCTION(BlueprintPure, Category = "WD|Hero|Animation")
 	bool IsFiring() const;
 
@@ -85,6 +89,10 @@ protected:
 	/** Pulls the drops in (GDD §4) — its radius grows with the character level. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
 	TObjectPtr<UWDMagnetComponent> Magnet;
+
+	/** The Special nova (GDD §5.1) — one shared cooldown across the 7 weapons. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
+	TObjectPtr<UWDSpecialAbilityComponent> Special;
 
 	/** Owner-level wiring (ArchitectureTechnique §10): inventory switch -> weapon component. */
 	UFUNCTION()

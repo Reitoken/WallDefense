@@ -34,6 +34,8 @@ struct FWDShotParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") float ChainDamageFraction = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") bool bHoming = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") float HomingTurnSpeed = 180.f;
+	/** Wind signature (GDD §5.2): pushes LIGHT enemies back along their path on hit. 0 = no push. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") float PushBackDistance = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") TObjectPtr<AActor> Instigator = nullptr;
 	/** Friendly-fire filter: actors of this class are never hit (monster shots ignore monsters). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") TSubclassOf<AActor> IgnoredClass;
@@ -88,6 +90,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta = (ClampMin = "0"))
 	int32 ChainCount = 0;
+
+	/** Wind only: push-back distance applied to light enemies on hit. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta = (ClampMin = "0.0"))
+	float ProjectilePushBack = 0.f;
 
 	// --- Continuous cone mode ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Cone", meta = (ClampMin = "1.0", ClampMax = "89.0"))
