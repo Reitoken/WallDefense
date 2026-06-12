@@ -1,6 +1,6 @@
 # Architecture technique — Wall Defense
 
-> v1.0 — 12 juin 2026. Document de référence AVANT d'écrire le code.
+> v1.1 — 12 juin 2026 (ajout : préchargement/écran de chargement, options, internationalisation). Document de référence AVANT d'écrire le code.
 > Tout est **C++** ; les Blueprints/assets ne font que du visuel et de la donnée. Préfixe de classes : `WD`.
 
 ---
@@ -26,10 +26,11 @@
 │ UWDSaveSubsystem      (5 slots, auto-save)     │   │ AWDStageGameMode  (assemble et arbitre)       │
 │ UWDProgressionSubsystem (or, ressources, XP,   │◄──┤ UWDStageDirector  (vagues depuis DA_Stage)    │
 │   niveaux d'armes, étoiles, découvertes…)      │   │ AWDHeroCharacter  + composants                │
-│ UWDUISubsystem        (pile d'écrans, vidéos)  │   │ AWDWall           + composants                │
-│ UWDDebugSubsystem     (draw debug, CVars)      │   │ AWDMonster ×N     + composants                │
-└───────────────┬────────────────────────────────┘   │ AWDProjectile (pool) · AWDLootPickup ×N       │
-                │ délégués (événements)              └───────────────┬───────────────────────────────┘
+│ UWDUISubsystem  (écrans, vidéos, transitions)  │   │ AWDWall           + composants                │
+│ UWDSettingsSubsystem (langue, audio, qualité)  │   │ AWDMonster ×N     + composants                │
+│ UWDPreloadSubsystem  (chargement avant stage)  │   │ AWDProjectile (pool) · AWDLootPickup ×N       │
+│ UWDDebugSubsystem     (draw debug, CVars)      │   └───────────────┬───────────────────────────────┘
+└───────────────┬────────────────────────────────┘                   │ délégués (événements)
                 ▼                                                    │ délégués (événements)
 ┌─ UI (widgets C++ → visuel en BP) ──────────────────────────────────▼───────────────────────────────┐
 │ HUD (mur, armes, vague, loot) · Menus (hub, améliorations, encyclopédie, stages, slots) · Histoire │
@@ -65,7 +66,9 @@
 |---|---|---|
 | **`UWDSaveSubsystem`** | Seul maître du disque : 5 slots, auto-save/auto-load, nouvelle partie. Sérialise l'état que lui donne la Progression. | `OnSlotLoaded`, `OnSaved` |
 | **`UWDProgressionSubsystem`** | L'état méta du joueur : or, ressources (élément × tier), XP/niveau, armes débloquées + niveaux, étoiles par stage×mode, niveaux du mur, tenues/skins, découvertes d'encyclopédie, record du stage infini. API : `CanAfford/Spend/Add`, `LevelUpWeapon`, `RegisterDiscovery`… Lit les DataAssets pour les règles ; notifie le SaveSubsystem. | `OnGoldChanged`, `OnResourceChanged`, `OnXPChanged`, `OnWeaponUnlocked`, `OnWeaponLeveledUp`, `OnWallUpgraded`, `OnDiscovery` |
-| **`UWDUISubsystem`** | Pile d'écrans (push/pop), transitions, lecture des **vidéos de Spéciale** (MediaPlayer plein écran skippable). Les widgets ne s'empilent jamais eux-mêmes. | `OnScreenChanged`, `OnVideoFinished` |
+| **`UWDUISubsystem`** | Pile d'écrans (push/pop), **transitions fondu** (écran de chargement ↔ jeu), lecture des **vidéos de Spéciale** (MediaPlayer plein écran skippable). Les widgets ne s'empilent jamais eux-mêmes. | `OnScreenChanged`, `OnVideoFinished`, `OnFadeFinished` |
+| **`UWDSettingsSubsystem`** | Les **paramètres globaux** (indépendants des 5 slots) : **langue** (+ dub), **volumes** (général/musique/SFX), **qualité graphique**. Enveloppe `UGameUserSettings` (scalabilité UE standard : Low/Medium/High/Epic + résolution/fenêtré/VSync) + Sound Classes/Mix pour l'audio + `FInternationalization::SetCurrentCulture` pour la langue. Persisté en config utilisateur (pas dans les slots). Applique tout au démarrage. | `OnLanguageChanged`, `OnVolumeChanged`, `OnQualityChanged` |
+| **`UWDPreloadSubsystem`** | Le **chargement avant stage** : collecte toutes les `TSoftObjectPtr` nécessaires à la partie (depuis le `DA_Stage` choisi : fiches monstres → leurs FX/sons ; armes possédées → leurs FX/sons/vidéos ; tenues ; mur) et les charge en **asynchrone** (`FStreamableManager::RequestAsyncLoad`), **réchauffe les pools** (projectiles pré-spawnés) et précompile les shaders (PSO precaching UE5). Garde un handle sur le bundle pendant la partie, le libère au retour menu. | `OnPreloadProgress(0–1)`, `OnPreloadFinished` |
 | **`UWDDebugSubsystem`** | Rendu debug centralisé (lignes, formes, couleurs par élément) + CVars (`wd.Debug.Bullets`…). Tous les composants dessinent à travers lui. | — |
 
 ## 6. Acteurs et composants gameplay
@@ -129,6 +132,9 @@
 | `UWDStageSelectWidget` | Progression | zones, stages, étoiles par mode, modes débloqués |
 | `UWDSaveSlotsWidget` | SaveSubsystem | 5 slots, nouvelle partie |
 | `UWDStoryWidget` | UISubsystem | écrans d'histoire arcade |
+| `UWDLoadingScreenWidget` | PreloadSubsystem | barre/anim de progression, astuce de gameplay 🔶 ; reste affiché jusqu'à `OnPreloadFinished` + fondu |
+| `UWDOptionsWidget` | SettingsSubsystem | onglets : **Jeu** (langue, dub), **Audio** (général/musique/SFX), **Graphismes** (qualité, résolution, fenêtré, VSync) |
+| `UWDLanguageSelectWidget` | SettingsSubsystem | **premier démarrage uniquement** : choix de la langue (drapeaux/noms natifs), enregistré aussitôt |
 
 ## 8. Flux types (comment tout se parle)
 
@@ -140,7 +146,22 @@
 
 **Victoire** : `StageDirector.OnStageCompleted` → `StageGameMode` lit les PV du mur → étoiles → `Progression.ApplyRunRewards(loot run × multiplicateur)` → `OnGoldChanged`/`OnResourceChanged` (l'UI du résumé s'anime) → `SaveSubsystem.AutoSave()`.
 
-## 9. Règles de modularité (le contrat)
+**Lancement d'un stage (écran de chargement)** : sélection du stage + mode → `UISubsystem` fondu vers le `LoadingScreenWidget` → `PreloadSubsystem.PreloadStage(DA_Stage, armes possédées)` charge tout en asynchrone (FX, sons, monstres, tenues, vidéos) + réchauffe les pools → `OnPreloadProgress` anime la barre → `OnPreloadFinished` → ouverture du niveau → premier tick rendu → **fondu de transition** vers le jeu. *Garantie : aucun hitch d'effet/son en partie — tout ce qu'un stage peut faire apparaître est déjà en mémoire (les DataAssets listent tout, c'est leur 2e raison d'être).* Au retour menu, le bundle est libéré.
+
+**Premier démarrage** : pas de config trouvée → `LanguageSelectWidget` (choix de langue) → `SettingsSubsystem` applique et sauvegarde → menu. Ensuite la langue se change dans les Options à tout moment.
+
+## 9. Internationalisation (i18n) — prévue dès le départ ✅
+
+Le jeu est **localisé dès la conception** (les textes seront écrits/traduits par Claude dans toutes les langues cibles) :
+
+- **Règle absolue dès la première ligne de code : tout texte visible = `FText`**, jamais de `FString` ni de littéral dans l'UI. Localiser après coup coûte 10× plus cher que cette discipline gratuite au jour 1.
+- **String Tables** (`ST_UI`, `ST_Weapons`, `ST_Monsters`, `ST_Story`…) : les textes vivent dans des tables, les DataAssets et widgets y font référence par clé — armes, monstres, paliers, histoire, encyclopédie, options.
+- **Localization Dashboard** d'Unreal : collecte, export/import `.po`, compilation des cultures. Langues cibles 🔶 : **FR (source), EN, ES, DE, PT-BR, JA, ZH-Hans, KO**.
+- **Choix au premier démarrage** ✅ : écran de sélection de langue, sauvegardé par le `SettingsSubsystem`, modifiable dans les Options.
+- **Dubs (audio localisé)** ✅ prévu techniquement : les assets audio « parlés » passent par le système de localisation d'assets d'UE (`Content/L10N/<culture>/…`) — le bon asset est chargé selon la culture audio, qui peut différer de la langue des textes (option « Voix »). 🔶 Le contenu voix lui-même (quelles lignes, quelles langues) sera décidé plus tard — l'architecture le permet sans refonte.
+- Les **nombres/formats** passent par `FText::AsNumber/AsPercent` (séparateurs corrects par culture).
+
+## 10. Règles de modularité (le contrat)
 
 - Un composant n'inclut JAMAIS le header d'un autre composant ; il ne connaît que les **types partagés** (§3) et **son** DataAsset.
 - Toute communication sortante = **délégué**. Toute configuration entrante = **DataAsset ou paramètres à l'init**.
@@ -148,14 +169,14 @@
 - Chaque composant doit fonctionner **dans une map de test vide** avec le DebugSubsystem (critère d'indépendance).
 - Tout asset = `TSoftObjectPtr` dans un DataAsset. Référence absente → rendu debug, jamais de crash.
 
-## 10. Ordre d'implémentation proposé
+## 11. Ordre d'implémentation proposé
 
-1. **Fondations** : types partagés (§3), `UWDHealthComponent` (élémentaire + bouclier), `UWDDebugSubsystem`.
+1. **Fondations** : types partagés (§3), `UWDHealthComponent` (élémentaire + bouclier), `UWDDebugSubsystem`. **Discipline `FText` + String Tables dès ce jour 1** (§9).
 2. **Héroïne top-down** : Character + Controller (2 schémas d'input) + caméra — en capsule de debug.
 3. **Armes debug-first** : `DA_Weapon` + `WeaponComponent` + `AWDProjectile` à behaviors + pool — le fusil d'abord, puis 1 palier de chaque type de behavior (perçant, rebond, fragment, autoguidé, zone).
 4. **Monstres** : `AWDMonster` + patterns + `DA_Monster` (zone 1) + `UWDStageDirector` + `DA_Stage` (stages 1–5).
-5. **Le mur + la boucle** : `AWDWall`, victoire/défaite, étoiles, `AWDStageGameMode`.
-6. **Méta** : pickups + magnet, `Progression`, `Save` (5 slots), menu hub minimal.
-7. **Le reste** : Spéciale + vidéos, modes Hard/Enfer, encyclopédie, tenues, skills du mur, histoire.
+5. **Le mur + la boucle** : `AWDWall`, victoire/défaite, étoiles, `AWDStageGameMode`, **écran de chargement + `PreloadSubsystem` + transitions** (dès qu'on charge un vrai stage).
+6. **Méta** : pickups + magnet, `Progression`, `Save` (5 slots), menu hub minimal, **`SettingsSubsystem` + Options + premier démarrage (langue)**.
+7. **Le reste** : Spéciale + vidéos, modes Hard/Enfer, encyclopédie, tenues, skills du mur, histoire, dubs.
 
 → Fin de l'étape 5 = **boucle de jeu complète jouable en debug**. C'est le premier jalon.

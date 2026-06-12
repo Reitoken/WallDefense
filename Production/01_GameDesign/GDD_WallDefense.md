@@ -1,6 +1,6 @@
 # Wall Defense — Game Design Document
 
-> **Statut** : v0.6 — 12 juin 2026 — intégration des commentaires BAK (3e passe).
+> **Statut** : v0.7 — 12 juin 2026 — ajout : écran de chargement, options, internationalisation.
 > ✅ = décidé · 🔶 = à approfondir/valider · ⚙️ = existe déjà dans le code.
 > Ce document est la **référence unique** des règles du jeu. Documents détaillés : `Mechanics/` et `Balancing/`.
 
@@ -25,6 +25,7 @@ Chaque arme évolue jusqu'au **niveau 100** (gros palier tous les 5 niveaux) et 
 - Solo, PC (Steam), **hors ligne**. Jeu premium (achat unique).
 - Contenu : **30 stages** en **6 zones de 5 stages** (4 normaux + 1 boss) + **stage 31 infini**.
 - **Sauvegarde : 5 slots** indépendants, sauvegarde/chargement **automatiques**, nouvelle partie possible. ⚙️ base : `WallDefenseSaveGame` + `AutoSaveComponent` (à étendre aux slots).
+- **Multilingue dès la conception** ✅ (v0.7) : choix de la langue au **premier démarrage** (sauvegardé, modifiable dans les options) ; textes écrits dans toutes les langues cibles (FR source, EN, ES, DE, PT-BR, JA, ZH, KO 🔶) ; **dubs** prévus techniquement (langue des voix ≠ langue des textes possible).
 
 ---
 
@@ -36,6 +37,8 @@ MENU (hub)
  ├─ DÉBLOQUER : skins et équipements (objets rares + or) — les armes, elles, se gagnent sur les boss
  ├─ ENCYCLOPÉDIE : consulter armes, effets, coûts d'évolution, monstres rencontrés
  └─ JOUER : choisir un stage déjà atteint (progression linéaire) + son MODE (Normal/Hard/Enfer)
+      └─> ÉCRAN DE CHARGEMENT ✅ : précharge TOUT ce que le stage utilisera (effets, sons,
+      │   monstres, tenues, vidéos) — zéro accroc en partie — puis transition en fondu
       └─> STAGE : vagues de monstres → ils attaquent le mur
            ├─ VICTOIRE → étoiles selon PV du mur → récompenses × étoiles → stage suivant
            │             (boss de zone vaincu → NOUVELLE ARME débloquée)
@@ -227,10 +230,13 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 
 ---
 
-## 11. Interface (UI) 🔶
+## 11. Interface (UI) 🔶 maquettes / ✅ liste des écrans
 
-- **HUD** : PV du mur, arme active + barre de switch (7), vague, loot (avec expiration visible).
-- **Menu/hub** : améliorations (armes/perso/mur), déblocages, **encyclopédie** (§2.3), sélection zone/stage avec étoiles, record du stage infini.
+- **HUD** : PV du mur, arme active + barre de switch (7), cooldown de Spéciale, vague, loot (avec expiration visible).
+- **Menu/hub** : améliorations (armes/perso/mur), déblocages, **encyclopédie** (§2.3), sélection zone/stage/**mode** avec étoiles, record du stage infini.
+- **Écran de chargement** ✅ (v0.7) : avant chaque stage — progression du préchargement, astuce 🔶, **transition en fondu** vers le jeu.
+- **Options** ✅ (v0.7) : **Jeu** (langue des textes, langue des voix/dub), **Audio** (volume général / musique / SFX), **Graphismes** (qualité Low→Epic, résolution, fenêtré, VSync — la scalabilité standard d'Unreal).
+- **Premier démarrage** ✅ : écran de **choix de langue** (une seule fois, modifiable ensuite dans les options).
 - **Sauvegardes** : 5 slots, nouvelle partie, suppression.
 - Maquettes dans `02_Art/UI/`.
 
@@ -261,6 +267,7 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 6. Modes : déblocage par stage ou par zone ; valeurs des multiplicateurs Hard/Enfer.
 
 ### Technique
-7. **Architecture technique complète** : `04_Documents/Technical/ArchitectureTechnique.md` — classes, composants, DataAssets, UI et bindings. C'est le document de référence AVANT de coder.
+7. **Architecture technique complète** : `04_Documents/Technical/ArchitectureTechnique.md` — classes, composants, DataAssets, UI et bindings, **préchargement, options, i18n** (v0.7). C'est le document de référence AVANT de coder.
 8. Refonte top-down (personnage, caméra, visée) selon les contrôles ✅ §4.
 9. Sauvegarde 5 slots ; `HealthComponent` élémentaire + bouclier ; `DA_Weapon` 1–100 + Spéciale/vidéo ; `DA_Stage` vagues ; pipeline tenues/skins ; encyclopédie générée des DataAssets.
+10. Liste finale des **langues cibles** et périmètre des **dubs** (textes seuls au lancement ? voix sur l'histoire ?) 🔶.
