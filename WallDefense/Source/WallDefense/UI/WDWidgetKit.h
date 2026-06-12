@@ -36,6 +36,14 @@ namespace WDWidgetKit
 		return Button;
 	}
 
+	/** AddDynamic is a name-stringifying macro — runtime-chosen handlers bind by FName instead. */
+	inline void BindClick(UButton* Button, UObject* Target, const FName& FunctionName)
+	{
+		FScriptDelegate Delegate;
+		Delegate.BindUFunction(Target, FunctionName);
+		Button->OnClicked.Add(Delegate);
+	}
+
 	/** Fullscreen colored backdrop with centered content. */
 	inline UBorder* MakeBackdrop(UWidgetTree* Tree, const FLinearColor& Color)
 	{

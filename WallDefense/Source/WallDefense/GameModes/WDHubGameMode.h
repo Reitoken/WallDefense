@@ -2,16 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "Core/WDTypes.h"
 #include "WDHubGameMode.generated.h"
 
-class UWDHubWidget;
-
 /**
- * The menu hub (ArchitectureTechnique §6.6): pure UI — upgrades, save slots, options,
- * stage launch. Works in ANY map (no pawn, spectator + mouse). Launching travels to
- * the SAME map with ?game=WDStageGameMode; the stage's "menu" button travels back.
- * Set it as GameMode Override to make a map boot on the menu.
+ * The menu game mode (ArchitectureTechnique §6.6): boots the game-style navigation —
+ * splash -> main menu -> new/load slots -> lobby -> adventure / armory / encyclopedia /
+ * options (UWDUISubsystem screen stack). Coming back from a stage (?WDLobby=1) lands
+ * straight in the lobby. Works in ANY map (no pawn, spectator + mouse).
+ * Set it as GameMode Override to make a map boot on the menus.
  */
 UCLASS(Blueprintable)
 class WALLDEFENSE_API AWDHubGameMode : public AGameModeBase
@@ -21,13 +19,9 @@ class WALLDEFENSE_API AWDHubGameMode : public AGameModeBase
 public:
 	AWDHubGameMode();
 
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void StartPlay() override;
 
-protected:
-	UFUNCTION()
-	void HandleStartStageRequested(int32 StageNumber, EWDDifficulty Mode);
-
 private:
-	UPROPERTY(Transient)
-	TObjectPtr<UWDHubWidget> HubWidget;
+	bool bGoStraightToLobby = false;
 };

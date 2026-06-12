@@ -22,6 +22,16 @@ bool UWDSaveSubsystem::DoesSlotExist(int32 SlotIndex) const
 	return UGameplayStatics::DoesSaveGameExist(SlotNameFor(SlotIndex), 0);
 }
 
+bool UWDSaveSubsystem::GetSlotState(int32 SlotIndex, FWDProgressionState& OutState) const
+{
+	if (const UWDSaveGame* Loaded = Cast<UWDSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotNameFor(SlotIndex), 0)))
+	{
+		OutState = Loaded->State;
+		return true;
+	}
+	return false;
+}
+
 void UWDSaveSubsystem::LoadSlot(int32 SlotIndex)
 {
 	SlotIndex = FMath::Clamp(SlotIndex, 0, SlotCount - 1);

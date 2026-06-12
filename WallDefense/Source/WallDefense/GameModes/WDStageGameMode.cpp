@@ -255,7 +255,8 @@ void AWDStageGameMode::HandleSummaryReplay()
 
 void AWDStageGameMode::HandleSummaryMenu()
 {
-	TravelTo(TEXT("game=/Script/WallDefense.WDHubGameMode"));
+	// Back to the headquarters: land straight in the lobby, not on the splash screen.
+	TravelTo(TEXT("game=/Script/WallDefense.WDHubGameMode?WDLobby=1"));
 }
 
 void AWDStageGameMode::TravelTo(const TCHAR* GameModeOption)

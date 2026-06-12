@@ -1,15 +1,22 @@
 #include "GameModes/WDHubGameMode.h"
-#include "UI/WDHubWidget.h"
+#include "UI/WDMenuScreens.h"
+#include "Core/WDUISubsystem.h"
 #include "Core/WDSettingsSubsystem.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "Kismet/GameplayStatics.h"
-#include "Blueprint/UserWidget.h"
 
 AWDHubGameMode::AWDHubGameMode()
 {
-	// Pure UI: nobody to possess, just a camera-less spectator and the mouse.
+	// Pure UI: nobody to possess, just a spectator and the mouse.
 	DefaultPawnClass = ASpectatorPawn::StaticClass();
 	bStartPlayersAsSpectators = true;
+}
+
+void AWDHubGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+	// A stage's "headquarters" button travels back with ?WDLobby=1 — skip the splash chain.
+	bGoStraightToLobby = UGameplayStatics::HasOption(Options, TEXT("WDLobby"));
 }
 
 void AWDHubGameMode::StartPlay()
@@ -22,26 +29,10 @@ void AWDHubGameMode::StartPlay()
 		Settings->RunFirstLaunchSetup();
 	}
 
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	if (!PlayerController)
+	if (UWDUISubsystem* UI = GetGameInstance()->GetSubsystem<UWDUISubsystem>())
 	{
-		return;
+		UI->ShowScreenAndClearStack(bGoStraightToLobby
+			? TSubclassOf<UWDMenuScreen>(UWDLobbyScreen::StaticClass())
+			: TSubclassOf<UWDMenuScreen>(UWDSplashScreen::StaticClass()));
 	}
-	PlayerController->bShowMouseCursor = true;
-	PlayerController->SetInputMode(FInputModeUIOnly());
-
-	HubWidget = CreateWidget<UWDHubWidget>(PlayerController, UWDHubWidget::StaticClass());
-	if (HubWidget)
-	{
-		HubWidget->OnStartStageRequested.AddDynamic(this, &AWDHubGameMode::HandleStartStageRequested);
-		HubWidget->AddToViewport();
-	}
-}
-
-void AWDHubGameMode::HandleStartStageRequested(int32 StageNumber, EWDDifficulty Mode)
-{
-	// Same map, stage rules — the URL options carry the choice (stage + mode).
-	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)), true,
-		FString::Printf(TEXT("game=/Script/WallDefense.WDStageGameMode?WDStage=%d?WDMode=%d"),
-			StageNumber, static_cast<int32>(Mode)));
 }

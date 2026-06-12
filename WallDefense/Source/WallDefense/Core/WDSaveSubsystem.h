@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Core/WDProgressionSubsystem.h"
 #include "WDSaveSubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWDOnSlotLoaded, int32, SlotIndex);
@@ -24,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "WD|Save")
 	bool DoesSlotExist(int32 SlotIndex) const;
+
+	/** Reads a slot WITHOUT loading it (slot screens summaries). False if empty/unreadable. */
+	bool GetSlotState(int32 SlotIndex, FWDProgressionState& OutState) const;
 
 	/** Loads a slot into the Progression (fresh state if the slot is empty) and makes it active. */
 	UFUNCTION(BlueprintCallable, Category = "WD|Save")

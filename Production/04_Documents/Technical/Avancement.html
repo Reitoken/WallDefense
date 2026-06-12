@@ -533,7 +533,8 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
       <tr><th>Retour</th><th>Correctif</th></tr>
       <tr><td>La langue ne changeait toujours rien en jeu</td><td>la vraie cause : <strong>aucune traduction compilée n'existe encore</strong> (le Localization Dashboard arrive avec la passe de contenu). Désormais une <strong>table FR→EN de tous les textes du jeu</strong> (namespace <code>WDUI</code>) est injectée EN DIRECT dans le gestionnaire de localisation : tout l'écran bascule instantanément FR↔EN, l'éditeur n'est jamais touché, et un test automatisé verrouille le comportement</td></tr>
       <tr><td>Le knockback à chaque coup</td><td><strong>désactivé par défaut</strong> (KnockbackDistance = 0). Seul le <strong>Canon à tornade</strong> repousse : 160 uu par impact sur les ennemis <em>légers</em> uniquement (ni Tank ni boss) — sa signature GDD §5.2. Sa Spéciale souffle tout le monde (les lourds à moitié)</td></tr>
-      <tr><td>Manettes PlayStation non reconnues</td><td>Windows/UE ne gère nativement que XInput (Xbox). Plugin <strong>RawInput</strong> activé + profils <strong>DualShock 4</strong> (3 variantes) et <strong>DualSense / Edge</strong> mappés directement sur les touches <code>Gamepad_*</code> standard : sticks, gâchettes (×=tir R2, Spéciale L2), L1/R1, Options=pause — tous les bindings existants marchent tels quels, brancher et jouer. Limites connues : pas de vibration via RawInput (la croix directionnelle non plus — inutilisée) ; le support complet DualSense (haptique) viendra via Steam Input à la passe Steam</td></tr>
+      <tr><td>Manettes PlayStation non reconnues</td><td>Windows/UE ne gère nativement que XInput (Xbox). Plugin <strong>RawInput</strong> activé + profils <strong>DualShock 4</strong> (3 variantes) et <strong>DualSense / Edge</strong> mappés directement sur les touches <code>Gamepad_*</code> standard : sticks, gâchettes (R2=tir, L2=Spéciale), L1/R1, Options=pause — tous les bindings existants marchent tels quels, brancher et jouer. Limites connues : pas de vibration via RawInput (la croix directionnelle non plus — inutilisée) ; le support complet DualSense (haptique) viendra via Steam Input à la passe Steam</td></tr>
+      <tr><td>Le personnage dérivait tout seul vers la gauche (manette PS)</td><td>Windows énumère les axes HID en <strong>ordre inverse du descripteur</strong>, et la <strong>croix (hat switch) compte comme un axe</strong> : le « stick gauche X » recevait en fait le hat au repos (0 → −0,5 → poussée constante), et le vrai stick tombait sur un axe non mappé. Profils réécrits dans l'ordre réel (DualSense : hat, R2, L2, stick droit Y/X, stick gauche Y/X)</td></tr>
     </table>
   </div>
 </details>
@@ -573,13 +574,32 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
   </table>
 </div>
 
+<details open>
+  <summary>Navigation de jeu — écrans, pile, manette <span class="badge b-ok">livré</span> <span class="badge b-now">remplace le QG mono-écran</span></summary>
+  <div class="inner">
+    <p>Fini le « tout dans un seul menu » : le jeu navigue désormais <strong>écran par écran</strong> via <span class="mono">UWDUISubsystem</span> (la pile d'écrans de l'ArchitectureTechnique §5 — push/pop, retour avec Échap/B ou le bouton « ← Retour ») :</p>
+    <pre>LOGO  →  MENU PRINCIPAL  →  Nouvelle partie ─┐
+          · Charger une partie ──────────────┴→  5 SLOTS (résumé Or/Niveau/★)
+          · Options · Quitter                          │
+                                                       ▼
+   LOBBY (Quartier général) ── ⚔ Partir à l'aventure → grille des stages (6 zones,
+          │                      étoiles par stage, mode Normal/Hard/Enfer, verrous)
+          ├─ Armurerie & améliorations (mur + 7 armes)
+          ├─ Encyclopédie (????? → noms → faiblesses)
+          ├─ Options (qualité, langue, volumes en sliders)
+          └─ Menu principal</pre>
+    <p>Chaque écran est une classe C++ (<span class="mono">UWDMenuScreen</span> de base, arbre construit en code — un BP pourra restyler) ; le <strong>premier bouton reçoit le focus</strong>, donc les menus se naviguent aussi à la manette. Le résumé de fin de stage ramène au <strong>lobby</strong> directement (pas au logo). Zones 2–6 affichées « à venir » dans la grille en attendant leurs bestiaires.</p>
+  </div>
+</details>
+
 <h2 id="tester7">Comment tester dans Unreal — Étape 7</h2>
 
 <div class="card">
-  <h3>Modes, Spéciale, encyclopédie (15 minutes)</h3>
+  <h3>Modes, Spéciale, encyclopédie, navigation (15 minutes)</h3>
   <p>1. <code>L_Sandbox</code> → GameMode Override <code>WDHubGameMode</code> → <strong>Play</strong>.<br><br>
-     ✅ <strong>Langue</strong> : clique EN — TOUT le QG passe en anglais immédiatement (et l'éditeur reste en l'état). FR pour revenir. Persiste au relancement.<br>
-     ✅ <strong>Sélection</strong> : seuls Stage 1 et le mode Normal sont actifs au départ. Finis le stage 1 → le stage 2 ET le mode Hard (stage 1) s'allument.<br>
+     ✅ <strong>Navigation</strong> : logo → menu principal → « Nouvelle partie » → choisis un slot → lobby. « ← Retour », Échap (hors PIE) ou B (manette) remontent la pile. Les flèches/le stick + Entrée/× naviguent les menus au pad.<br>
+     ✅ <strong>Langue</strong> : Options → English — TOUS les écrans basculent immédiatement (et l'éditeur reste en l'état). Persiste au relancement.<br>
+     ✅ <strong>Sélection</strong> : lobby → « Partir à l'aventure » : seuls Stage 1 et le mode Normal sont actifs au départ. Finis le stage 1 → le stage 2 ET le mode Hard s'allument (étoiles visibles sur chaque stage).<br>
      ✅ <strong>La Spéciale</strong> : en stage, <strong>Espace</strong> (ou gâchette gauche) — nova de l'élément actif, gros shake, 30 s de recharge partagée entre les armes.<br>
      ✅ <strong>Le vent repousse</strong> : tornade sur des Ombrillons → ils perdent du terrain à chaque impact ; le Rempart et la Brute, non. Les autres armes ne poussent plus.<br>
      ✅ <strong>Hard</strong> : monstres bien plus coriaces avec une résistance de plus, qui droppent des <strong>Cristaux</strong> — nécessaires aux armes niveau 41+.<br>
