@@ -83,6 +83,9 @@
   <div class="grp">Étape 3 — Armes</div>
   <a href="#etape3">Ce qui est implémenté</a>
   <a href="#tester3">Comment tester (étape 3)</a>
+  <div class="grp">Étape 4 — Monstres</div>
+  <a href="#etape4">Ce qui est implémenté</a>
+  <a href="#tester4">Comment tester (étape 4)</a>
   <div class="grp">Validation</div>
   <a href="#tests">Tests automatisés</a>
   <div class="grp">Référence</div>
@@ -97,9 +100,9 @@
   <p><strong>Wall Defense</strong> — tower defense incarné, vue top-down : une héroïne défend son mur contre des vagues de monstres dimensionnels en switchant entre <strong>7 armes élémentaires</strong>. 30 stages (6 zones), 3 modes, stage infini.</p>
   <p class="muted">Architecture : composants indépendants · communication par délégués · DataAssets comme ponts de données · UI event-driven · debug-first. Référence complète : <span class="mono">ArchitectureTechnique.md</span>.</p>
   <div class="kpis">
-    <div class="kpi"><div class="v">3/7</div><div class="l">Étapes terminées</div></div>
-    <div class="kpi"><div class="v" id="kpi-tests">19/19</div><div class="l">Tests auto validés</div></div>
-    <div class="kpi"><div class="v">15</div><div class="l">Classes livrées</div></div>
+    <div class="kpi"><div class="v">4/7</div><div class="l">Étapes terminées</div></div>
+    <div class="kpi"><div class="v" id="kpi-tests">25/25</div><div class="l">Tests auto validés</div></div>
+    <div class="kpi"><div class="v">26</div><div class="l">Classes livrées</div></div>
   </div>
   <p style="margin-top:14px">
     <span class="elem" style="background:var(--normal)"></span>Normal&nbsp;&nbsp;
@@ -126,12 +129,12 @@
     <div class="title">Armes debug-first <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
     <div class="desc">Les 7 armes élémentaires jouables (4 modes de tir), projectiles à comportements data-driven (perçant, rebond, fragments, chaîne, autoguidé), pool, switch réel, cibles d'entraînement avec dégâts FAIBLESSE/résisté.</div>
   </div></div>
-  <div class="step"><div class="num">4</div><div class="body">
-    <div class="title">Monstres + hit response <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
-    <div class="desc">AWDMonster · patterns · fiches zone 1 · StageDirector + vagues · ressenti d'impact (flash, hitstop, chiffres).</div>
+  <div class="step done"><div class="num">4</div><div class="body">
+    <div class="title">Monstres + hit response <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
+    <div class="desc">Bestiaire zone 1 vivant (5 monstres + boss), 8 patterns de déplacement, soigneuse à aura, tireur à distance, vagues sans temps morts, hit response complet (flash, knockback, hitstop sur faiblesse, vibration manette).</div>
   </div></div>
   <div class="step"><div class="num">5</div><div class="body">
-    <div class="title">Le mur + la boucle <span class="badge b-todo">À VENIR</span></div>
+    <div class="title">Le mur + la boucle <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
     <div class="desc">AWDWall · victoire/défaite · étoiles · écran de chargement + préchargement. <strong>Jalon : boucle complète jouable en debug.</strong></div>
   </div></div>
   <div class="step"><div class="num">6</div><div class="body">
@@ -299,6 +302,55 @@
      ✅ Les cibles K.O. réapparaissent après 2 s — farm sans fin.</p>
 </div>
 
+<h2 id="etape4">Étape 4 — Ce qui est implémenté <span class="badge b-ok">✓</span></h2>
+
+<details open>
+  <summary><span class="mono">AWDMonster</span> + bestiaire zone 1 — les fiches prennent vie <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p>Un monstre = une fiche du <span class="mono">Bestiaire.md</span> × les bases du stage. Forme par rôle (cube/cône/cylindre/sphère), taille par fiche (le boss est énorme), <strong>teinté de sa couleur de faiblesse</strong>, nom + PV au-dessus de la tête.</p>
+    <table>
+      <tr><th>Monstre</th><th>Rôle</th><th>Pattern</th><th>Particularité</th></tr>
+      <tr><td>Ombrillon</td><td>standard</td><td>ligne droite</td><td>la référence (faible Feu)</td></tr>
+      <tr><td>Vif-Esprit</td><td>rapide</td><td>zigzag</td><td>force à décrocher la visée</td></tr>
+      <tr><td>Rempart</td><td>tank</td><td>droite, lent</td><td>défense 50 (les dégâts fondent), faible Glace</td></tr>
+      <tr><td>Crache-Brume</td><td>tireur</td><td>charge-pause</td><td><strong>bombarde le mur à distance</strong> (projectiles lents)</td></tr>
+      <tr><td>Vestale</td><td>soigneuse</td><td>sinusoïdal</td><td><strong>soigne les blessés en pulsation</strong> — tue-la d'abord !</td></tr>
+      <tr><td><strong>Brute dimensionnelle</strong></td><td>boss</td><td>droite</td><td>×15 PV, ×3 dégâts au mur, écrase tout</td></tr>
+    </table>
+    <p class="muted">Les 8 patterns sont codés (droite, sinus, zigzag, charge-pause, flanqueur, spirale, sauteur, fouisseur — ces deux derniers attendent leurs monstres de zones 4–6).</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">AWDStageDirector</span> — les vagues sans temps morts <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p>Déroule le <span class="mono">DA_Stage</span> : 5 vagues à introduction progressive, boss en finale. <strong>Chrono inter-vague affiché ; terrain nettoyé = la vague suivante part immédiatement</strong> (ta règle « zéro attente »). Statut au-dessus du mur : « Vague 3/5 — 6 ennemis — prochaine : 8s ».</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">Hit response</span> — le ressenti d'impact <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p><strong>Local</strong> (<span class="mono">UWDHitResponseComponent</span>) : flash blanc du mesh, knockback à l'impact, chiffres de dégâts colorés avec FAIBLESSE!/résisté.<br>
+    <strong>Global</strong> (<span class="mono">UWDGameFeelSubsystem</span>) : <strong>hitstop</strong> (micro-gel du temps) + <strong>vibration manette</strong> — déclenchés sur les coups de faiblesse et les morts (gros ralenti sur la mort du boss). <em>Switcher sur le bon élément se SENT.</em> Camera shake viendra avec les assets.</p>
+  </div>
+</details>
+
+<h2 id="tester4">Comment tester dans Unreal — Étape 4</h2>
+
+<div class="card">
+  <h3>Ton premier vrai combat (10 minutes)</h3>
+  <p>1. Ouvre <code>L_Sandbox</code> → <strong>Play</strong>. Un <strong>grand bloc gris</strong> (le mur provisoire, 2000 PV) apparaît derrière toi ; le stage démarre après <strong>5 secondes</strong>.<br><br>
+     ✅ <strong>Vague 1</strong> : 3 Ombrillons rouges marchent droit vers le mur — brûle-les au lance-flammes (« FAIBLESSE ! » + micro-gel du temps + vibration).<br>
+     ✅ <strong>Zéro attente</strong> : nettoie la vague avant la fin du chrono → la suivante part aussitôt.<br>
+     ✅ <strong>Vague 2</strong> : les Vif-Esprits zigzaguent — décroche ta visée pour les suivre.<br>
+     ✅ <strong>Vague 3</strong> : le Rempart bleu encaisse (défense 50) — passe au canon givrant (sa faiblesse) ; la <strong>Vestale</strong> soigne les blessés (cercles + « +15 » verts) — élimine-la en priorité.<br>
+     ✅ <strong>Vague 4</strong> : les Crache-Brume s'arrêtent au loin et <strong>bombardent le mur</strong> — leurs projectiles ignorent les autres monstres mais pas le mur. Intercepte-les.<br>
+     ✅ <strong>Vague 5</strong> : la <strong>Brute dimensionnelle</strong> — énorme, lente, ×3 dégâts au mur. Sa mort déclenche un gros ralenti.<br>
+     ✅ Laisse les monstres atteindre le mur : ses PV fondent, à 0 il disparaît (le vrai mur + défaite = étape 5).<br>
+     ✅ Fin : « STAGE TERMINÉ ! » au-dessus du mur.</p>
+</div>
+
 <h2 id="tester">Comment tester dans Unreal — Étape 1</h2>
 
 <div class="card">
@@ -349,6 +401,12 @@
     <tr><td class="mono">Weapons.SpreadDirections</td><td>Éventail de tirs : centre sur la visée, bords à ±angle/2</td><td>✅</td></tr>
     <tr><td class="mono">Weapons.HomingTurnClamp</td><td>Autoguidage : virage plafonné, verrouillage si budget suffisant, bon côté</td><td>✅</td></tr>
     <tr><td class="mono">Weapons.DebugArsenal</td><td>7 armes, 7 éléments distincts, stats saines, le laser sombre = plus long cooldown</td><td>✅</td></tr>
+    <tr><td class="mono">Patterns.SinusoidBounds</td><td>Le sinus reste dans son amplitude, démarre centré</td><td>✅</td></tr>
+    <tr><td class="mono">Patterns.ZigzagShape</td><td>Triangle −A→+A, périodique, virages francs</td><td>✅</td></tr>
+    <tr><td class="mono">Patterns.ChargePauseDuty</td><td>Sprint ×1,6 puis arrêt total, en cycle</td><td>✅</td></tr>
+    <tr><td class="mono">Patterns.BurrowAndFlank</td><td>Fouisseur surface/sous-terre en cycle ; flanqueur converge près du mur ; sauteur jamais sous le sol</td><td>✅</td></tr>
+    <tr><td class="mono">Monsters.Zone1Bestiary</td><td>6 fiches : toutes avec faiblesse, soigneuse qui soigne sans frapper le mur, tireur à distance, boss le plus costaud</td><td>✅</td></tr>
+    <tr><td class="mono">Stage.DebugStage1</td><td>5 vagues valides, chronos sains, le boss ferme le stage</td><td>✅</td></tr>
   </table>
   <p class="muted">Exécution headless (sans ouvrir l'éditeur) :</p>
   <pre>& "C:\Unreal Engine\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
@@ -382,9 +440,9 @@
     <tr><td class="mono">WDTypes.h</td><td>éléments, modes, dégâts, profils élémentaires, couleurs</td><td><span class="badge b-ok">1 ✓</span></td></tr>
     <tr><td class="mono">UWDHealthComponent</td><td>vie universelle : faiblesse/résistance, défense %, bouclier</td><td><span class="badge b-ok">1 ✓</span></td></tr>
     <tr><td class="mono">DA_Weapon (UWDWeaponData)</td><td>une arme : stats niveau 1, 4 modes de tir, comportements (courbe 1–100, Spéciale, FX/SFX : plus tard)</td><td><span class="badge b-ok">3 ✓</span></td></tr>
-    <tr><td class="mono">DA_Monster (UWDMonsterData)</td><td>une fiche du bestiaire</td><td><span class="badge b-todo">4</span></td></tr>
-    <tr><td class="mono">DA_Stage (UWDStageData)</td><td>un stage : vagues, monstres par vague, récompenses</td><td><span class="badge b-todo">4</span></td></tr>
-    <tr><td class="mono">DA_HitResponse</td><td>recettes de ressenti d'impact</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">DA_Monster (UWDMonsterData)</td><td>une fiche du bestiaire (zone 1 en debug : 5+boss)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
+    <tr><td class="mono">DA_Stage (UWDStageData)</td><td>un stage : vagues, monstres par vague, bases de stats (récompenses : étape 6)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
+    <tr><td class="mono">Hit response (composant + GameFeel)</td><td>flash, knockback, chiffres, hitstop, vibration (DataAsset de recettes : avec les assets)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">DA_Wall / DA_Character / DA_Outfit</td><td>mur, perso, tenues</td><td><span class="badge b-todo">5–7</span></td></tr>
   </table></div>
 </details>
@@ -397,8 +455,9 @@
     <tr><td class="mono">UWDWeaponInventory / WeaponComponent</td><td>7 armes, switch réel, 4 modes de tir (muzzle = offset, socket avec les meshes)</td><td><span class="badge b-ok">3 ✓</span></td></tr>
     <tr><td class="mono">AWDProjectile + UWDProjectilePoolSubsystem</td><td>projectile générique data-driven (perçant, rebond, fragments, chaîne, autoguidé) + pool</td><td><span class="badge b-ok">3 ✓</span></td></tr>
     <tr><td class="mono">AWDTargetDummy</td><td>cible d'entraînement : teinte = faiblesse, dégâts FAIBLESSE/résisté, respawn</td><td><span class="badge b-ok">3 ✓</span></td></tr>
-    <tr><td class="mono">AWDMonster + patterns + auras</td><td>monstres data-driven, supports (heal/bouclier/accél…)</td><td><span class="badge b-todo">4</span></td></tr>
-    <tr><td class="mono">UWDStageDirector</td><td>vagues, chrono inter-vague sans attente, kill streak</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">AWDMonster + patterns + auras</td><td>monstres data-driven (8 patterns, aura de soin, tireur, anim state)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
+    <tr><td class="mono">AWDStageDirector</td><td>vagues, chrono inter-vague sans attente (kill streak : étape 6)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
+    <tr><td class="mono">UWDGameFeelSubsystem</td><td>hitstop, vibration manette (camera shake : avec assets)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">AWDWall + skills</td><td>le mur : PV global, skills conditionnels</td><td><span class="badge b-todo">5</span></td></tr>
     <tr><td class="mono">AWDLootPickup + Magnet</td><td>drops qui expirent, aimant évolutif</td><td><span class="badge b-todo">6</span></td></tr>
     <tr><td class="mono">UWDHeroAnimInstance</td><td>état d'anim de l'héroïne exposé à l'AnimBP (Speed, bIsMoving, MoveDirection)</td><td><span class="badge b-ok">2 ✓</span></td></tr>

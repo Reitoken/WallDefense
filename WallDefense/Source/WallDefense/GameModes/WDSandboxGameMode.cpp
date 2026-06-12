@@ -3,8 +3,12 @@
 #include "Player/WDHeroController.h"
 #include "Combat/WDTargetDummy.h"
 #include "Combat/WDHealthComponent.h"
+#include "Stage/WDStageDirector.h"
+#include "Stage/WDStageData.h"
+#include "Core/WDDebugSubsystem.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
 
 AWDSandboxGameMode::AWDSandboxGameMode()
 {
@@ -52,5 +56,36 @@ void AWDSandboxGameMode::InitGame(const FString& MapName, const FString& Options
 			Dummy->Health->ElementalProfile.Weakness = EWDElement::Light;
 			Dummy->Health->StartingShield = 50.f;
 		}
+	}
+}
+
+void AWDSandboxGameMode::StartPlay()
+{
+	Super::StartPlay();
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// Wall stand-in (step 5 brings the real AWDWall): a wide, tough grey block the monsters attack.
+	AWDTargetDummy* WallStandIn = GetWorld()->SpawnActor<AWDTargetDummy>(FVector(-900.f, 0.f, 130.f), FRotator::ZeroRotator, Params);
+	if (WallStandIn)
+	{
+		WallStandIn->SetActorScale3D(FVector(1.f, 14.f, 2.6f));
+		WallStandIn->Health->SetMaxHealth(2000.f, /*bRefill=*/true);
+		WallStandIn->RespawnDelay = 6.f;
+	}
+
+	// Stage director with the zone 1 debug stage; monsters arrive from +X after a short delay.
+	AWDStageDirector* Director = GetWorld()->SpawnActor<AWDStageDirector>(FVector::ZeroVector, FRotator::ZeroRotator, Params);
+	if (Director && WallStandIn)
+	{
+		Director->Configure(UWDStageData::MakeDebugStage1(Director), WallStandIn, FVector(2200.f, 0.f, 0.f), 800.f);
+		GetWorldTimerManager().SetTimer(StageStartTimer, [Director]()
+		{
+			if (IsValid(Director))
+			{
+				Director->StartStage();
+			}
+		}, 5.f, false);
 	}
 }

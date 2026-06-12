@@ -66,6 +66,10 @@ void AWDProjectile::Tick(float DeltaSeconds)
 	for (const FHitResult& Hit : Hits)
 	{
 		AActor* HitActor = Hit.GetActor();
+		if (HitActor && Params.IgnoredClass && HitActor->IsA(Params.IgnoredClass))
+		{
+			continue; // friendly fire filter
+		}
 		if (HitActor && WDTargeting::GetLiveHealth(HitActor))
 		{
 			if (HitActors.Contains(HitActor))

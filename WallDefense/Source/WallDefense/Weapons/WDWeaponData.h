@@ -35,6 +35,8 @@ struct FWDShotParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") bool bHoming = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") float HomingTurnSpeed = 180.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") TObjectPtr<AActor> Instigator = nullptr;
+	/** Friendly-fire filter: actors of this class are never hit (monster shots ignore monsters). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot") TSubclassOf<AActor> IgnoredClass;
 };
 
 /**
