@@ -7,7 +7,7 @@
 
 ## 0. Règles transverses
 
-- **Direction artistique ✅ (v0.6)** : des créatures **fantastiques venues d'une autre dimension** (cf. l'histoire, GDD §2.3), dans l'esprit des **Sans-cœur de *Kingdom Hearts*** — silhouettes simples et fortes, designs **fun et particuliers**, PAS d'animaux réalistes. Proposition de signature visuelle : **yeux/marquages lumineux de la couleur de leur élément** (la signalétique du jeu jusque dans le design).
+- **Direction artistique ✅ (v0.6)** : des créatures **fantastiques venues d'une autre dimension** (cf. l'histoire, GDD §2.4), dans l'esprit des **Sans-cœur de *Kingdom Hearts*** — silhouettes simples et fortes, designs **fun et particuliers**, PAS d'animaux réalistes. Proposition de signature visuelle : **yeux/marquages lumineux de la couleur de leur élément** (la signalétique du jeu jusque dans le design).
 - **Introduction** : 2 types au stage 1 de la zone, +1 nouveau par stage ; stage 5 = les 5 types + le boss.
 - **Faiblesse dominante de zone** = l'arme débloquée juste avant d'y entrer → la nouvelle arme brille immédiatement. Zone 1 : faiblesses tournées vers Feu/Glace (futures armes) — re-clear rentable plus tard.
 - **Alignement de zone** = l'élément des ressources droppées par ses monstres. (Ressources **Lumière** : droppées par les boss et le stage infini 🔶.)

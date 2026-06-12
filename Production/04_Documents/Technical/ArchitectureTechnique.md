@@ -1,6 +1,6 @@
 # Architecture technique — Wall Defense
 
-> v1.3 — 12 juin 2026 (ajouts : préchargement/écran de chargement, options, internationalisation, hit response/game feel, **conventions de sockets et de paramétrisation §11**). Document de référence AVANT d'écrire le code.
+> v1.4 — 12 juin 2026 (ajouts : préchargement, options, i18n, hit response, conventions de sockets §11, **décisions UX validées : pause, résumé, musique dynamique, Steam, barres de vie, chrono de vagues**). Document de référence AVANT d'écrire le code — **prêt pour review**.
 > Tout est **C++** ; les Blueprints/assets ne font que du visuel et de la donnée. Préfixe de classes : `WD`.
 
 ---
@@ -59,7 +59,7 @@
 | **`UWDCharacterData`** | Stats du perso par niveau d'XP (vitesse, **portée d'aimant**…), courbe d'XP | HeroCharacter, MagnetComponent, Progression |
 | **`UWDOutfitData`** (DA_Outfit_×N) | Une tenue : meshes/matériaux/anims (même squelette). 1 par arme + variantes (skins) | OutfitComponent |
 | **`DT_DifficultyModes`** | Multiplicateurs Normal/Hard/Enfer (stats, drops, tiers) | StageDirector, Monster, LootDrop |
-| **`UWDHitResponseData`** (DA_HitResponse_×N) | Une « recette de ressenti » à l'impact, par **gabarit** (léger/moyen/lourd/boss — chaque fiche monstre en référence un, avec overrides possibles) : **flash** du mesh (couleur/durée), **secousse** du mesh, **hitstop** (micro-gel en ms), **knockback** (force selon le poids), **camera shake** (classe + intensité), **vibration manette**, `FWDEffectCue` d'impact, **chiffres de dégâts flottants** (style par élément + style spécial **FAIBLESSE!/résisté** — c'est ce feedback qui enseigne le bestiaire), réponse à la **mort** (pop, FX, ralenti bref sur les boss) | HitResponseComponent, GameFeelSubsystem, Monster |
+| **`UWDHitResponseData`** (DA_HitResponse_×N) | Une « recette de ressenti » à l'impact, par **gabarit** (léger/moyen/lourd/boss — chaque fiche monstre en référence un, avec overrides possibles) : **flash** du mesh (couleur/durée), **secousse** du mesh, **hitstop** (micro-gel en ms), **knockback** (force selon le poids), **camera shake** (classe + intensité), **vibration manette**, `FWDEffectCue` d'impact, **chiffres de dégâts flottants** (style par élément + **icône de l'élément accolée : grande = faiblesse, petite avec flèche vers le bas = résistance** ✅ — feedback qui enseigne le bestiaire ET signalétique daltonisme), réponse à la **mort** (pop, FX, ralenti bref sur les boss) | HitResponseComponent, GameFeelSubsystem, Monster |
 
 ## 5. Subsystems persistants (GameInstance)
 
@@ -67,8 +67,10 @@
 |---|---|---|
 | **`UWDSaveSubsystem`** | Seul maître du disque : 5 slots, auto-save/auto-load, nouvelle partie. Sérialise l'état que lui donne la Progression. | `OnSlotLoaded`, `OnSaved` |
 | **`UWDProgressionSubsystem`** | L'état méta du joueur : or, ressources (élément × tier), XP/niveau, armes débloquées + niveaux, étoiles par stage×mode, niveaux du mur, tenues/skins, découvertes d'encyclopédie, record du stage infini. API : `CanAfford/Spend/Add`, `LevelUpWeapon`, `RegisterDiscovery`… Lit les DataAssets pour les règles ; notifie le SaveSubsystem. | `OnGoldChanged`, `OnResourceChanged`, `OnXPChanged`, `OnWeaponUnlocked`, `OnWeaponLeveledUp`, `OnWallUpgraded`, `OnDiscovery` |
-| **`UWDUISubsystem`** | Pile d'écrans (push/pop), **transitions fondu** (écran de chargement ↔ jeu), lecture des **vidéos de Spéciale** (MediaPlayer plein écran skippable). Les widgets ne s'empilent jamais eux-mêmes. | `OnScreenChanged`, `OnVideoFinished`, `OnFadeFinished` |
-| **`UWDSettingsSubsystem`** | Les **paramètres globaux** (indépendants des 5 slots) : **langue** (+ dub), **volumes** (général/musique/SFX), **qualité graphique**. Enveloppe `UGameUserSettings` (scalabilité UE standard : Low/Medium/High/Epic + résolution/fenêtré/VSync) + Sound Classes/Mix pour l'audio + `FInternationalization::SetCurrentCulture` pour la langue. Persisté en config utilisateur (pas dans les slots). Applique tout au démarrage. | `OnLanguageChanged`, `OnVolumeChanged`, `OnQualityChanged` |
+| **`UWDUISubsystem`** | Pile d'écrans (push/pop), **transitions fondu** (écran de chargement ↔ jeu), lecture des **vidéos de Spéciale** (MediaPlayer plein écran skippable), **pause** (menu pause ; abandon = défaite) et **auto-pause** ✅ (manette déconnectée, fenêtre qui perd le focus). Les widgets ne s'empilent jamais eux-mêmes. | `OnScreenChanged`, `OnVideoFinished`, `OnFadeFinished`, `OnPauseChanged` |
+| **`UWDMusicSubsystem`** ✅ (v1.4) | La **musique dynamique** : en jeu, couches d'intensité (calme / assaut / mur en danger) pilotées par les événements du StageDirector et du mur ; **au menu, la même musique évolue selon l'écran** du hub. MetaSounds + transitions douces. | `OnIntensityChanged` |
+| **`UWDSteamSubsystem`** ✅ (v1.4) | L'intégration Steamworks, isolée ici (le reste du jeu l'ignore) : **succès** (écoute les événements de Progression), **marqueurs Timeline** aux moments forts (boss vaincu, 3★, record) 🔶 si simple. Cloud save = pure config Auto-Cloud (aucun code). Absent/échec Steam → no-op silencieux. | — |
+| **`UWDSettingsSubsystem`** | Les **paramètres globaux** (indépendants des 5 slots) : **langue** (+ dub), **volumes** (général/musique/SFX), **qualité graphique**. Enveloppe `UGameUserSettings` (scalabilité UE standard : Low/Medium/High/Epic + résolution/fenêtré/VSync) + Sound Classes/Mix pour l'audio + `FInternationalization::SetCurrentCulture` pour la langue. **Au premier lancement : benchmark matériel d'UE (`RunHardwareBenchmark`) → préréglage graphique automatique** ✅. Gère aussi : barres de vie monstres on/off, intensité du shake, remapping (Enhanced Input user settings). Persisté en config utilisateur (pas dans les slots). Applique tout au démarrage. | `OnLanguageChanged`, `OnVolumeChanged`, `OnQualityChanged` |
 | **`UWDPreloadSubsystem`** | Le **chargement avant stage** : collecte toutes les `TSoftObjectPtr` nécessaires à la partie (depuis le `DA_Stage` choisi : fiches monstres → leurs FX/sons ; armes possédées → leurs FX/sons/vidéos ; tenues ; mur) et les charge en **asynchrone** (`FStreamableManager::RequestAsyncLoad`), **réchauffe les pools** (projectiles pré-spawnés) et précompile les shaders (PSO precaching UE5). Garde un handle sur le bundle pendant la partie, le libère au retour menu. | `OnPreloadProgress(0–1)`, `OnPreloadFinished` |
 | **`UWDGameFeelSubsystem`** *(WorldSubsystem — vit avec la partie)* | Les retours **globaux** d'impact, qui ne peuvent pas vivre sur un monstre : **hitstop** (dilation du temps quelques ms), **camera shake** (via la caméra du joueur), **vibration manette**, brefs **ralentis** (mort de boss). API : `Play(HitResponseData, contexte)`. Respecte les options d'accessibilité (intensité de shake réglable/désactivable). | — |
 | **`UWDDebugSubsystem`** | Rendu debug centralisé (lignes, formes, couleurs par élément) + CVars (`wd.Debug.Bullets`…). Tous les composants dessinent à travers lui. | — |
@@ -115,7 +117,7 @@
 | Classe | Description simple |
 |---|---|
 | **`AWDStageGameMode`** | **L'assembleur** : spawn héroïne + mur, crée le StageDirector avec le `DA_Stage` + mode choisis, écoute `OnDied` du mur (défaite) et `OnStageCompleted` (victoire → calcul d'étoiles depuis les PV du mur → récompenses × multiplicateur → `Progression` → auto-save). C'est ICI que les composants sont câblés entre eux. |
-| **`UWDStageDirector`** | Déroule les **vagues** du `DA_Stage` : spawn les monstres (init fiche × stage × mode), compte les vivants. Mode infini : génère les vagues par la courbe au lieu de la liste. → `OnWaveStarted(n)`, `OnWaveCleared(n)`, `OnStageCompleted`, `OnMonsterKilled` |
+| **`UWDStageDirector`** | Déroule les **vagues** du `DA_Stage` : spawn les monstres (init fiche × stage × mode), compte les vivants. **Chrono inter-vague ✅ : la vague suivante part à la fin du chrono OU dès que la vague est nettoyée (zéro attente)**. Annonce le boss (message non bloquant). Suit la **série de kills** sans dégâts au mur (kill streak → bonus d'or 🔶 prototype). Mode infini : génère les vagues par la courbe au lieu de la liste. → `OnWaveStarted(n)`, `OnWaveTimerTick`, `OnWaveCleared(n)`, `OnBossArrived`, `OnStreakChanged`, `OnStageCompleted`, `OnMonsterKilled` |
 | **`AWDMenuGameMode`** ⚙️ | Le hub (améliorations, encyclopédie, sélection) — surtout de l'UI. |
 
 ## 7. UI — widgets et binding
@@ -128,7 +130,11 @@
 
 | Widget | Écoute | Affiche |
 |---|---|---|
-| `UWDHUDWidget` | Wall.Health, WeaponInventory, Special, StageDirector, Magnet | barre du mur, barre d'armes (7), cooldowns, n° de vague, loot ramassé |
+| `UWDHUDWidget` | Wall.Health, WeaponInventory, Special, StageDirector, Magnet | barre du mur, barre d'armes (7), cooldowns, **n° de vague + chrono inter-vague**, annonce de boss, série de kills, loot ramassé |
+| `UWDMonsterStatusWidget` *(WidgetComponent au socket `Status`)* | Health du monstre | barre de vie + icône de faiblesse (si découverte) + états (gel, marque, bouclier) — **désactivable dans les options** ✅ ; variante grande barre pour les boss |
+| `UWDPauseWidget` | UISubsystem | reprendre / options / **abandonner** (= défaite, loot conservé) |
+| `UWDStageSummaryWidget` | StageGameMode, Progression | l'écran de dopamine : étoiles animées, loot × multiplicateur, XP, découvertes |
+| `UWDInputRemapWidget` | SettingsSubsystem (Enhanced Input) | réassignation des touches/boutons |
 | `UWDSpecialVideoWidget` | UISubsystem | la vidéo de Spéciale (skippable) |
 | `UWDMenuHubWidget` | Progression | or/ressources/XP, accès aux sous-menus |
 | `UWDUpgradeWidget` | Progression (+ DA_Weapon/DA_Wall/DA_Character) | niveaux, coûts, prochain palier |
@@ -215,7 +221,7 @@ Les **sockets existent sur les Static Mesh comme sur les Skeletal Mesh** (pannea
 3. **Armes debug-first** : `DA_Weapon` + `WeaponComponent` + `AWDProjectile` à behaviors + pool — le fusil d'abord, puis 1 palier de chaque type de behavior (perçant, rebond, fragment, autoguidé, zone).
 4. **Monstres** : `AWDMonster` + patterns + `DA_Monster` (zone 1) + `UWDStageDirector` + `DA_Stage` (stages 1–5) + **hit response** (`DA_HitResponse`, `HitResponseComponent`, `GameFeelSubsystem`, chiffres flottants) — le ressenti se règle dès que des monstres meurent, pas en fin de projet.
 5. **Le mur + la boucle** : `AWDWall`, victoire/défaite, étoiles, `AWDStageGameMode`, **écran de chargement + `PreloadSubsystem` + transitions** (dès qu'on charge un vrai stage).
-6. **Méta** : pickups + magnet, `Progression`, `Save` (5 slots), menu hub minimal, **`SettingsSubsystem` + Options + premier démarrage (langue)**.
-7. **Le reste** : Spéciale + vidéos, modes Hard/Enfer, encyclopédie, tenues, skills du mur, histoire, dubs.
+6. **Méta** : pickups + magnet, `Progression`, `Save` (5 slots), menu hub minimal + **pause/résumé de stage**, **`SettingsSubsystem` + Options + premier démarrage (langue + benchmark)**.
+7. **Le reste** : Spéciale + vidéos, modes Hard/Enfer, encyclopédie, tenues, skills du mur, histoire, **musique dynamique**, **Steam (succès, timeline)**, remapping, dubs.
 
 → Fin de l'étape 5 = **boucle de jeu complète jouable en debug**. C'est le premier jalon.

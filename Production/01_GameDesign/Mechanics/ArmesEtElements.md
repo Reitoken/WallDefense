@@ -265,7 +265,7 @@
 
 ### 6.5 Une arme = des données
 - `DA_Weapon` : élément, stats de base, **courbe 1–100**, **liste des paliers**, **Spéciale** (effet, scaling, cooldown, **vidéo** ✅), refs visuelles/sonores **optionnelles par effet et sous-effet**, tenue associée, coûts par tier.
-- Le `WeaponComponent` ⚙️ lit tout ; l'**encyclopédie** (GDD §2.3) se génère depuis ces mêmes données (avec dévoilement progressif ✅).
+- Le `WeaponComponent` ⚙️ lit tout ; l'**encyclopédie** (GDD §2.4) se génère depuis ces mêmes données (avec dévoilement progressif ✅).
 
 ### 6.6 SFX en couches
 - **MetaSounds** : corps mécanique + couche élémentaire ; chaque sous-effet peut avoir son propre son ✅.

@@ -1,6 +1,6 @@
 # Wall Defense — Game Design Document
 
-> **Statut** : v0.7 — 12 juin 2026 — ajout : écran de chargement, options, internationalisation.
+> **Statut** : v0.8 — 12 juin 2026 — décisions UX/game feel (propositions validées par BAK).
 > ✅ = décidé · 🔶 = à approfondir/valider · ⚙️ = existe déjà dans le code.
 > Ce document est la **référence unique** des règles du jeu. Documents détaillés : `Mechanics/` et `Balancing/`.
 
@@ -66,12 +66,20 @@ MENU (hub)
 - **Multiplicateur de drops** du stage ✅ : 0★ ×1 · 1★ ×1,25 · 2★ ×1,5 · 3★ ×2, + chances de drop rare accrues.
 - **3 étoiles = bonus supplémentaire** (🔶 objet rare garanti ?).
 
-### 2.3 Histoire, guide et encyclopédie ✅
+### 2.3 Rythme des vagues et moments forts ✅ (v0.8)
+- **Chrono inter-vague** affiché : la vague suivante part à la fin du chrono, **ou immédiatement si la vague en cours est nettoyée avant** — zéro temps d'attente, jamais.
+- Pas d'aperçu des types de la vague suivante : juste le temps.
+- **Arrivée du boss** : message visuel **sans arrêter le jeu** — les boss sont plus grands et plus gros, ils se voient.
+- **Pas de télégraphes d'attaque au sol** : les attaques visent le mur, pas le joueur ; l'animation des monstres suffit à lire le danger.
+- **Alerte sonore** quand le mur encaisse des dégâts ✅.
+- **Série (kill streak)** 🔶 à prototyper : enchaîner les kills sans que le mur ne soit touché → petit bonus d'or.
+
+### 2.4 Histoire, guide et encyclopédie ✅
 - **La trame** ✅ : *des monstres d'une autre dimension envahissent la Terre ; une jeune héroïne tente de les arrêter en cherchant des armes pour les exterminer.* Racontée en « arcade » : écrans courts entre les stages clés (intro de zone, victoire de boss), quelques lignes + illustrations. 🔶 Détail de l'écriture défini plus tard.
 - **Guide de début de partie** : un tutoriel basique qui explique le cœur (tirer, switcher, améliorer une arme, le mur). Court, contextuel, skippable.
 - **Encyclopédie** consultable au menu, avec **dévoilement progressif** ✅ : elle garde une **part de mystère** — les entrées non découvertes affichent des `?????` pour montrer qu'une progression est possible (paliers d'armes pas encore atteints, monstres pas encore croisés, faiblesses pas encore testées).
 
-### 2.4 Modes de difficulté : Normal / Hard / Enfer ✅ (v0.6)
+### 2.5 Modes de difficulté : Normal / Hard / Enfer ✅ (v0.6)
 Les 30 stages sont **rejouables en 3 modes** :
 - **Hard** d'un stage : débloqué en le finissant en Normal ; **Enfer** : en le finissant en Hard 🔶.
 - Les monstres y sont **plus résistants** (stats accrues + **résistances élémentaires supplémentaires**) et les **drops meilleurs**.
@@ -103,7 +111,7 @@ Les 30 stages sont **rejouables en 3 modes** :
 
 ## 4. Le personnage
 
-- **Une jeune héroïne** ✅ (cf. la trame, §2.3) — à concevoir skinnable dès le départ.
+- **Une jeune héroïne** ✅ (cf. la trame, §2.4) — à concevoir skinnable dès le départ.
 - **Tire** sur les vagues avec ses armes (§5). Ne meurt pas — seul le mur compte ✅.
 - **Contrôles ✅ (v0.6), deux schémas, manette privilégiée** :
   - **Manette (cible principale)** : twin-stick — stick gauche déplace, stick droit oriente/vise, gâchette tire, boutons/roue pour changer d'arme.
@@ -162,6 +170,10 @@ Les 30 stages sont **rejouables en 3 modes** :
 | Dégâts au mur | propres à chaque type |
 
 **Pas de table élémentaire globale** ✅ : chaque monstre définit SA faiblesse et SES résistances.
+
+**Lisibilité des dégâts élémentaires ✅ (v0.8, sert aussi l'accessibilité daltonisme)** :
+- chiffres de dégâts stylés par élément, avec **l'icône de l'élément** accolée : **en grand** = faiblesse touchée ; **en petit avec une flèche vers le bas** = résistance ;
+- **barre de vie au-dessus de chaque monstre** (+ état : gel, marque, bouclier) — **facilement désactivable dans les options** pour ne pas surcharger l'écran ; grande barre dédiée pour les boss 🔶.
 
 **Monstres support** ✅ élargi v0.5 — des buffs variés, y compris **farfelus**, pour le fun et la priorisation :
 - **Soigneur** — soigne en avançant ; au contact, soigne au lieu de frapper ;
@@ -226,6 +238,8 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 - **Une arme = un DataAsset** (`DA_Weapon` : stats, courbe 1–100, comportements par palier, **Spéciale + sa vidéo** ✅, refs VFX/SFX optionnelles par effet et sous-effet — absentes = rendu debug).
 - **Un stage = un DataAsset** ✅ v0.6 : `DA_Stage` — liste des vagues, **liste des monstres par vague** + quantités + timing, mode, récompenses.
 - **SFX en couches** (MetaSounds).
+- **Musique dynamique** ✅ (v0.8) : en jeu, des couches d'intensité (vague calme / assaut / mur en danger) ; **et au menu aussi** — la même musique évolue selon l'écran du hub (feature adorée de Pierre). MetaSounds.
+- **Steam** ✅ (v0.8) : **succès** (jalons existants : boss, étoiles, nv 100, record infini), **cloud save** (Auto-Cloud sur le dossier de sauvegarde). Pas de mode photo custom : **Steam Game Recording** fournit l'enregistrement de gameplay gratuitement — on ajoutera des **marqueurs Timeline** aux moments forts (boss vaincu, 3 étoiles) si c'est simple 🔶.
 - **Architecture complète** : `Production/04_Documents/Technical/ArchitectureTechnique.md` (classes, composants, liens, UI).
 
 ---
@@ -233,10 +247,17 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 ## 11. Interface (UI) 🔶 maquettes / ✅ liste des écrans
 
 - **HUD** : PV du mur, arme active + barre de switch (7), cooldown de Spéciale, vague, loot (avec expiration visible).
-- **Menu/hub** : améliorations (armes/perso/mur), déblocages, **encyclopédie** (§2.3), sélection zone/stage/**mode** avec étoiles, record du stage infini.
+- **Menu/hub** : améliorations (armes/perso/mur), déblocages, **encyclopédie** (§2.4), sélection zone/stage/**mode** avec étoiles, record du stage infini.
 - **Écran de chargement** ✅ (v0.7) : avant chaque stage — progression du préchargement, astuce 🔶, **transition en fondu** vers le jeu.
 - **Options** ✅ (v0.7) : **Jeu** (langue des textes, langue des voix/dub), **Audio** (volume général / musique / SFX), **Graphismes** (qualité Low→Epic, résolution, fenêtré, VSync — la scalabilité standard d'Unreal).
-- **Premier démarrage** ✅ : écran de **choix de langue** (une seule fois, modifiable ensuite dans les options).
+- **Premier démarrage** ✅ : écran de **choix de langue** (une seule fois, modifiable ensuite dans les options) + **préréglage graphique automatique** (benchmark matériel d'UE) ✅.
+- **Menu pause** ✅ (v0.8) : reprendre / options / **abandonner** (abandonner = défaite, loot conservé). **Auto-pause** si la manette se déconnecte ou si la fenêtre perd le focus ✅.
+- **Écran de résumé de fin de stage** ✅ (v0.8) : victoire OU défaite — étoiles animées, loot détaillé (× multiplicateur), XP, découvertes (« nouveau monstre ! »). L'écran de dopamine.
+- **Remapping des touches** ✅ : menu de réassignation (Enhanced Input).
+- **HUD** : barres de vie des monstres **désactivables** ; chrono inter-vague.
+- **Statistiques** ✅ : kills par monstre, dégâts par arme… (compteurs dans la progression, alimentent encyclopédie et succès).
+- **Pas d'achat multiple d'améliorations** ✅ : monter niveau par niveau fait partie du rythme du jeu (pouvoir monter ×100 d'un coup signifierait une économie cassée).
+- **Replay du tutoriel** depuis l'encyclopédie ✅.
 - **Sauvegardes** : 5 slots, nouvelle partie, suppression.
 - Maquettes dans `02_Art/UI/`.
 
@@ -254,6 +275,8 @@ Un monstre vaincu droppe : **or**, **XP**, **ressources élémentaires** (de son
 ## 13. Points à approfondir
 
 *Résolus en v0.6 : skills du mur (liste validée), mur à PV global sans réparation en stage, drops à durée de vie + aimant évolutif, patterns validés, trame de l'histoire (héroïne vs invasion dimensionnelle), bestiaire validé (mandat équilibrage), modes Normal/Hard/Enfer + matériaux par tier, contrôles (souris/manette, manette privilégiée), Spéciale active + vidéo, laser Ténèbres refondu, sous-effets avec VFX+SFX optionnels, `DA_Stage` pour les vagues, encyclopédie à dévoilement progressif (`?????`), direction artistique fantastique (type Sans-cœur).*
+
+*Résolus en v0.8 (propositions validées) : menu pause (abandon = défaite), écran de résumé, alerte sonore mur, barres de vie monstres désactivables, lisibilité élémentaire par icônes (grande = faiblesse / petite + flèche = résistance), remapping, auto-pause, chrono inter-vague sans temps morts, annonce de boss non bloquante, musique dynamique (jeu + menu), succès Steam, cloud save, statistiques, benchmark graphique au 1er lancement, kill streak (🔶 prototype), replay du tutoriel, Steam Game Recording + marqueurs Timeline. **Rejetés : télégraphes au sol, aperçu des types de vague, achat multiple ×10, vitesse ×2, mode photo custom, minimap, NG+.***
 
 ### Mandats confiés (BAK : « je te laisse calculer/choisir »)
 1. **Équilibrage du bestiaire** — caler stats/faiblesses pour un jeu évolutif et challenging, farm et *try and evolve* en avant.
