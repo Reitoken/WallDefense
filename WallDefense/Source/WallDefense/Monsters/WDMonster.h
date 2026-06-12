@@ -11,6 +11,7 @@ class UWDMovePatternComponent;
 class UWDWallAttackComponent;
 class UWDAuraHealComponent;
 class UWDHitResponseComponent;
+class UWDLootDropComponent;
 class UWDMonsterData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWDOnMonsterKilled, AWDMonster*, Monster);
@@ -77,6 +78,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Monster")
 	TObjectPtr<UWDHitResponseComponent> HitResponse;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Monster")
+	TObjectPtr<UWDLootDropComponent> LootDrop;
 
 protected:
 	UFUNCTION()

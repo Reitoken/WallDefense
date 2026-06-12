@@ -30,11 +30,12 @@ TArray<UWDMonsterData*> UWDMonsterData::MakeZone1Bestiary(UObject* Outer)
 		M->ElementalProfile.bHasWeakness = true; M->ElementalProfile.Weakness = EWDElement::Fire;
 		Bestiary.Add(M);
 	}
-	// M103 « Rempart » — the first big one. Weak to Ice.
+	// M103 « Rempart » — the first big one. Weak to Ice. Tanky = better loot.
 	{
 		UWDMonsterData* M = MakeMonster(Outer, TEXT("Rempart"), EWDMonsterRole::Tank, EWDMovePattern::Straight);
 		M->Speed = 100.f; M->HealthMultiplier = 4.f; M->Defense = 50.f; M->WallDamageMultiplier = 1.5f; M->BodyScale = 1.6f;
 		M->ElementalProfile.bHasWeakness = true; M->ElementalProfile.Weakness = EWDElement::Ice;
+		M->GoldDropMin = 8; M->GoldDropMax = 12; M->XPDrop = 9; M->ResourceDropChance = 0.6f;
 		Bestiary.Add(M);
 	}
 	// M104 « Crache-Brume » — shoots the wall from afar. Weak to Fire.
@@ -53,12 +54,13 @@ TArray<UWDMonsterData*> UWDMonsterData::MakeZone1Bestiary(UObject* Outer)
 		M->ElementalProfile.bHasWeakness = true; M->ElementalProfile.Weakness = EWDElement::Ice;
 		Bestiary.Add(M);
 	}
-	// B1 « Brute dimensionnelle » — zone 1 boss: big, slow, hits hard. Weak to Fire.
+	// B1 « Brute dimensionnelle » — zone 1 boss: big, slow, hits hard. Weak to Fire. Jackpot drop.
 	{
 		UWDMonsterData* M = MakeMonster(Outer, TEXT("Brute dimensionnelle"), EWDMonsterRole::Boss, EWDMovePattern::Straight);
 		M->Speed = 110.f; M->HealthMultiplier = 15.f; M->Defense = 50.f; M->WallDamageMultiplier = 3.f; M->BodyScale = 2.6f;
 		M->AttackInterval = 2.f;
 		M->ElementalProfile.bHasWeakness = true; M->ElementalProfile.Weakness = EWDElement::Fire;
+		M->GoldDropMin = 60; M->GoldDropMax = 80; M->XPDrop = 50; M->ResourceDropChance = 1.f; M->ResourceDropAmount = 4;
 		Bestiary.Add(M);
 	}
 

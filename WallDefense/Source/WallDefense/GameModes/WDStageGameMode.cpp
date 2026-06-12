@@ -1,6 +1,7 @@
 #include "GameModes/WDStageGameMode.h"
 #include "Player/WDHeroCharacter.h"
 #include "Player/WDHeroController.h"
+#include "Player/WDMagnetComponent.h"
 #include "Wall/WDWall.h"
 #include "Wall/WDWallSkillsComponent.h"
 #include "Combat/WDHealthComponent.h"
@@ -9,8 +10,12 @@
 #include "Stage/WDStageMath.h"
 #include "Monsters/WDMonster.h"
 #include "Core/WDPreloadSubsystem.h"
+#include "Core/WDProgressionSubsystem.h"
+#include "Core/WDProgressionMath.h"
+#include "Core/WDSaveSubsystem.h"
 #include "Core/WDDebugSubsystem.h"
 #include "UI/WDLoadingScreenWidget.h"
+#include "UI/WDStageSummaryWidget.h"
 #include "Weapons/WDWeaponInventoryComponent.h"
 #include "GameFramework/PlayerStart.h"
 #include "Camera/PlayerCameraManager.h"
@@ -69,13 +74,20 @@ void AWDStageGameMode::StartPlay()
 	Director = GetWorld()->SpawnActor<AWDStageDirector>(FVector::ZeroVector, FRotator::ZeroRotator, Params);
 	Director->Configure(Stage, Wall, MonsterSpawnCenter, MonsterSpawnHalfWidth);
 
-	// THE wiring point (ArchitectureTechnique §6.6): victory, defeat, and the wall's repulsion push.
+	// THE wiring point (ArchitectureTechnique §6.6): victory, defeat, repulsion, run loot.
 	Wall->Health->OnDied.AddDynamic(this, &AWDStageGameMode::HandleWallDestroyed);
 	Wall->Skills->OnSkillTriggered.AddDynamic(this, &AWDStageGameMode::HandleWallSkill);
 	Director->OnStageCompleted.AddDynamic(this, &AWDStageGameMode::HandleStageCompleted);
 
 	// Loading screen + preload, then fade in and start the waves.
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (APawn* Pawn = PlayerController ? PlayerController->GetPawn() : nullptr)
+	{
+		if (UWDMagnetComponent* Magnet = Pawn->FindComponentByClass<UWDMagnetComponent>())
+		{
+			Magnet->OnLootCollected.AddDynamic(this, &AWDStageGameMode::HandleLootCollected);
+		}
+	}
 	if (PlayerController)
 	{
 		LoadingScreen = CreateWidget<UWDLoadingScreenWidget>(PlayerController, UWDLoadingScreenWidget::StaticClass());
@@ -148,34 +160,27 @@ void AWDStageGameMode::HandleWallSkill(const FWDWallSkillDef& Skill)
 	}
 }
 
+void AWDStageGameMode::HandleLootCollected(EWDLootType Type, EWDElement Element, EWDResourceTier Tier, int32 Amount)
+{
+	RunLoot.Add(Type, Element, Tier, Amount);
+}
+
 void AWDStageGameMode::HandleWallDestroyed(AActor* Killer)
 {
-	if (bStageOver)
-	{
-		return;
-	}
-	bStageOver = true;
-
-	if (IsValid(Director))
-	{
-		Director->StopStage(/*bDespawnMonsters=*/true);
-	}
-
-	const FString Message = TEXT("DÉFAITE — LE MUR EST TOMBÉ. Le loot est conservé : améliore et retente !");
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Red, Message);
-	}
-	if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
-	{
-		Debug->DrawText(WallLocation + FVector(0, 0, 450.f), Message, EWDElement::Dark, 6.f);
-	}
-
-	OnStageFinished.Broadcast(false, 0);
-	ScheduleRestart(6.f);
+	FinishStage(/*bVictory=*/false);
 }
 
 void AWDStageGameMode::HandleStageCompleted()
+{
+	FinishStage(/*bVictory=*/true);
+}
+
+void AWDStageGameMode::AbandonStage()
+{
+	FinishStage(/*bVictory=*/false);
+}
+
+void AWDStageGameMode::FinishStage(bool bVictory)
 {
 	if (bStageOver || !IsValid(Wall))
 	{
@@ -183,37 +188,68 @@ void AWDStageGameMode::HandleStageCompleted()
 	}
 	bStageOver = true;
 
-	const float HealthPercent = Wall->GetHealthPercent();
-	const int32 Stars = WDStageMath::StarsFromWallHealth(HealthPercent);
-	const float Multiplier = WDStageMath::RewardMultiplierForStars(Stars);
-
-	const TCHAR* StarIcons[] = { TEXT("☆☆☆"), TEXT("★☆☆"), TEXT("★★☆"), TEXT("★★★") };
-	const FString Message = FString::Printf(TEXT("VICTOIRE !  %s — Mur %.0f%% — Récompenses ×%.2f"),
-		StarIcons[Stars], HealthPercent * 100.f, Multiplier);
-	if (GEngine)
+	if (IsValid(Director))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, Message);
-	}
-	if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
-	{
-		Debug->DrawText(WallLocation + FVector(0, 0, 450.f), Message, EWDElement::Light, 8.f);
+		Director->StopStage(/*bDespawnMonsters=*/!bVictory);
 	}
 
-	OnStageFinished.Broadcast(true, Stars);
-	ScheduleRestart(8.f);
+	// Stars from the wall's remaining HP; the loot is ALWAYS kept — defeat just means ×1 (GDD §2.2/§7).
+	const int32 Stars = bVictory ? WDStageMath::StarsFromWallHealth(Wall->GetHealthPercent()) : 0;
+	const float Multiplier = bVictory ? WDStageMath::RewardMultiplierForStars(Stars) : 1.f;
+	const int32 BonusGold = bVictory ? WDProgressionMath::StarBonusGold(Stars, Stage->StageNumber) : 0;
+
+	FWDLootBundle Granted = RunLoot; // display fallback if no subsystem (tests/odd worlds)
+	int32 CharacterLevel = 1;
+	if (UWDProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWDProgressionSubsystem>())
+	{
+		Granted = Progression->ApplyRunRewards(RunLoot, Multiplier);
+		if (BonusGold > 0)
+		{
+			Progression->AddGold(BonusGold);
+		}
+		if (bVictory)
+		{
+			Progression->RegisterStageResult(Stage->StageNumber, EWDDifficulty::Normal, Stars);
+		}
+		CharacterLevel = Progression->GetCharacterLevel();
+	}
+	if (UWDSaveSubsystem* Save = GetGameInstance()->GetSubsystem<UWDSaveSubsystem>())
+	{
+		Save->SaveActive(); // auto-save the banked run (ArchitectureTechnique §8)
+	}
+
+	OnStageFinished.Broadcast(bVictory, Stars);
+
+	// The dopamine screen (GDD §11): verdict, stars, detailed loot, replay/menu.
+	if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+	{
+		SummaryWidget = CreateWidget<UWDStageSummaryWidget>(PlayerController, UWDStageSummaryWidget::StaticClass());
+		if (SummaryWidget)
+		{
+			SummaryWidget->InitSummary(bVictory, Stars, Granted, Multiplier, BonusGold, CharacterLevel);
+			SummaryWidget->OnReplayRequested.AddDynamic(this, &AWDStageGameMode::HandleSummaryReplay);
+			SummaryWidget->OnMenuRequested.AddDynamic(this, &AWDStageGameMode::HandleSummaryMenu);
+			SummaryWidget->AddToViewport(/*ZOrder=*/80);
+		}
+	}
 }
 
-void AWDStageGameMode::ScheduleRestart(float Delay)
+void AWDStageGameMode::HandleSummaryReplay()
 {
-	GetWorldTimerManager().SetTimer(RestartTimer, this, &AWDStageGameMode::RestartStageLevel, Delay, false);
+	TravelTo(TEXT("game=/Script/WallDefense.WDStageGameMode"));
 }
 
-void AWDStageGameMode::RestartStageLevel()
+void AWDStageGameMode::HandleSummaryMenu()
+{
+	TravelTo(TEXT("game=/Script/WallDefense.WDHubGameMode"));
+}
+
+void AWDStageGameMode::TravelTo(const TCHAR* GameModeOption)
 {
 	if (UWDPreloadSubsystem* Preload = GetGameInstance()->GetSubsystem<UWDPreloadSubsystem>())
 	{
 		Preload->OnPreloadFinished.RemoveDynamic(this, &AWDStageGameMode::HandlePreloadFinished);
 		Preload->ReleaseBundle();
 	}
-	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)), true, GameModeOption);
 }

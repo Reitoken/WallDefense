@@ -4,6 +4,7 @@
 #include "Weapons/WDWeaponInventoryComponent.h"
 #include "Weapons/WDWeaponComponent.h"
 #include "Weapons/WDWeaponData.h"
+#include "Player/WDMagnetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -54,6 +55,7 @@ AWDHeroCharacter::AWDHeroCharacter()
 
 	WeaponInventory = CreateDefaultSubobject<UWDWeaponInventoryComponent>(TEXT("WeaponInventory"));
 	WeaponComponent = CreateDefaultSubobject<UWDWeaponComponent>(TEXT("WeaponComponent"));
+	Magnet = CreateDefaultSubobject<UWDMagnetComponent>(TEXT("Magnet"));
 
 	DebugNose = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugNose"));
 	DebugNose->SetupAttachment(RootComponent);

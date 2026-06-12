@@ -5,6 +5,9 @@
 #include "Weapons/WDProjectilePoolSubsystem.h"
 #include "Combat/WDHealthComponent.h"
 #include "Core/WDDebugSubsystem.h"
+#include "Core/WDProgressionSubsystem.h"
+#include "Core/WDProgressionMath.h"
+#include "Engine/GameInstance.h"
 
 UWDWeaponComponent::UWDWeaponComponent()
 {
@@ -15,6 +18,15 @@ void UWDWeaponComponent::SetWeapon(UWDWeaponData* InWeapon)
 {
 	Weapon = InWeapon;
 	Cooldown = 0.f; // switching is free; the dark laser's long interval punishes spamming it, not switching
+
+	// The weapon's meta level scales its damage (GDD §5.4; milestone behaviors at step 7).
+	DamageMultiplier = 1.f;
+	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	const UWDProgressionSubsystem* Progression = GameInstance ? GameInstance->GetSubsystem<UWDProgressionSubsystem>() : nullptr;
+	if (Weapon && Progression)
+	{
+		DamageMultiplier = WDProgressionMath::WeaponDamageMultiplier(Progression->GetWeaponLevel(Weapon->Element));
+	}
 }
 
 void UWDWeaponComponent::StartFire()
@@ -60,7 +72,9 @@ void UWDWeaponComponent::FireProjectile(const FVector& Muzzle, const FVector& Di
 {
 	if (UWDProjectilePoolSubsystem* Pool = GetWorld()->GetSubsystem<UWDProjectilePoolSubsystem>())
 	{
-		Pool->FireShot(Weapon->MakeShotParams(GetOwner()), Muzzle, Direction);
+		FWDShotParams Params = Weapon->MakeShotParams(GetOwner());
+		Params.Damage *= DamageMultiplier;
+		Pool->FireShot(Params, Muzzle, Direction);
 	}
 }
 
@@ -84,7 +98,7 @@ void UWDWeaponComponent::FireCone(const FVector& Muzzle, const FVector& Directio
 		if (FVector::DotProduct(Direction, ToTarget) >= CosHalfAngle)
 		{
 			FWDDamageEvent Damage;
-			Damage.Amount = Weapon->Damage;
+			Damage.Amount = Weapon->Damage * DamageMultiplier;
 			Damage.Element = Weapon->Element;
 			Damage.Instigator = GetOwner();
 			Damage.ImpactPoint = Target->GetActorLocation();
@@ -132,7 +146,7 @@ void UWDWeaponComponent::FireBouncingRay(const FVector& Muzzle, const FVector& D
 			}
 			AlreadyHit.Add(Victim);
 			FWDDamageEvent Damage;
-			Damage.Amount = Weapon->Damage;
+			Damage.Amount = Weapon->Damage * DamageMultiplier;
 			Damage.Element = Weapon->Element;
 			Damage.Instigator = GetOwner();
 			Damage.ImpactPoint = Hit.ImpactPoint;
@@ -173,7 +187,7 @@ void UWDWeaponComponent::FireStrike()
 	Strike.Location.Z = Origin.Z;
 	Strike.TimeRemaining = Weapon->StrikeDelay;
 	Strike.Radius = Weapon->StrikeRadius;
-	Strike.Damage = Weapon->Damage;
+	Strike.Damage = Weapon->Damage * DamageMultiplier;
 	Strike.Element = Weapon->Element;
 	PendingStrikes.Add(Strike);
 }

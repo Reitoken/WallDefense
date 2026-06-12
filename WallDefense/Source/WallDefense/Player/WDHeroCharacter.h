@@ -10,6 +10,7 @@ class UStaticMeshComponent;
 class UWDWeaponInventoryComponent;
 class UWDWeaponComponent;
 class UWDWeaponData;
+class UWDMagnetComponent;
 
 /**
  * The top-down heroine (free movement, Zelda-like camera).
@@ -52,6 +53,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "WD|Hero")
 	UWDWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "WD|Hero")
+	UWDMagnetComponent* GetMagnet() const { return Magnet; }
+
 	UFUNCTION(BlueprintPure, Category = "WD|Hero|Animation")
 	bool IsFiring() const;
 
@@ -77,6 +81,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
 	TObjectPtr<UWDWeaponComponent> WeaponComponent;
+
+	/** Pulls the drops in (GDD §4) — its radius grows with the character level. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
+	TObjectPtr<UWDMagnetComponent> Magnet;
 
 	/** Owner-level wiring (ArchitectureTechnique §10): inventory switch -> weapon component. */
 	UFUNCTION()

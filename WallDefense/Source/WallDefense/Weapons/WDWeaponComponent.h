@@ -70,5 +70,7 @@ private:
 
 	FVector AimTarget = FVector::ZeroVector;
 	float Cooldown = 0.f;
+	/** From the weapon's progression level (set on SetWeapon; ×1 without progression). */
+	float DamageMultiplier = 1.f;
 	bool bFiring = false;
 };

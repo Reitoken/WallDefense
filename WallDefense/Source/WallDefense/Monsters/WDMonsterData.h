@@ -94,6 +94,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster")
 	float BodyScale = 1.f;
 
+	// --- Drops (GDD §7: gold, XP, the monster's elemental resource; rare items later) ---
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Drops", meta = (ClampMin = "0"))
+	int32 GoldDropMin = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Drops", meta = (ClampMin = "0"))
+	int32 GoldDropMax = 6;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Drops", meta = (ClampMin = "0"))
+	int32 XPDrop = 4;
+
+	/** Chance to drop the monster's elemental material (its weakness element). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Drops", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ResourceDropChance = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Drops", meta = (ClampMin = "0"))
+	int32 ResourceDropAmount = 1;
+
 	/** Zone 1 debug bestiary: M101..M105 + B1 (Bestiaire.md). */
 	static TArray<UWDMonsterData*> MakeZone1Bestiary(UObject* Outer);
 };

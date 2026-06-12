@@ -29,6 +29,85 @@ enum class EWDDifficulty : uint8
 	Hell   UMETA(DisplayName = "Enfer"),
 };
 
+/** Material tiers — each difficulty mode drops its own (GDD §2.5): weapon levels ~1-40 / 41-70 / 71-100. */
+UENUM(BlueprintType)
+enum class EWDResourceTier : uint8
+{
+	Fragments UMETA(DisplayName = "Fragments"),
+	Crystals  UMETA(DisplayName = "Cristaux"),
+	Cores     UMETA(DisplayName = "Noyaux"),
+};
+
+/** What a defeated monster drops (GDD §7). Rare items arrive with the encyclopedia step. */
+UENUM(BlueprintType)
+enum class EWDLootType : uint8
+{
+	Gold     UMETA(DisplayName = "Or"),
+	XP       UMETA(DisplayName = "XP"),
+	Resource UMETA(DisplayName = "Ressource élémentaire"),
+};
+
+/** A pile of one elemental material: element × tier × amount. */
+USTRUCT(BlueprintType)
+struct FWDResourceStack
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	EWDElement Element = EWDElement::Normal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	EWDResourceTier Tier = EWDResourceTier::Fragments;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	int32 Amount = 0;
+};
+
+/** Everything earned during one run — tallied by the GameMode, applied to the Progression at the end. */
+USTRUCT(BlueprintType)
+struct FWDLootBundle
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	int32 Gold = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	int32 XP = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	TArray<FWDResourceStack> Resources;
+
+	void AddResource(EWDElement Element, EWDResourceTier Tier, int32 Amount)
+	{
+		if (Amount <= 0)
+		{
+			return;
+		}
+		for (FWDResourceStack& Stack : Resources)
+		{
+			if (Stack.Element == Element && Stack.Tier == Tier)
+			{
+				Stack.Amount += Amount;
+				return;
+			}
+		}
+		Resources.Add({ Element, Tier, Amount });
+	}
+
+	void Add(EWDLootType Type, EWDElement Element, EWDResourceTier Tier, int32 Amount)
+	{
+		switch (Type)
+		{
+		case EWDLootType::Gold:     Gold += Amount; break;
+		case EWDLootType::XP:       XP += Amount;   break;
+		case EWDLootType::Resource: AddResource(Element, Tier, Amount); break;
+		}
+	}
+
+	bool IsEmpty() const { return Gold == 0 && XP == 0 && Resources.IsEmpty(); }
+};
+
 /** How a target relates to an incoming element (drives damage feedback: big icon / small icon + down arrow). */
 UENUM(BlueprintType)
 enum class EWDElementalMatch : uint8

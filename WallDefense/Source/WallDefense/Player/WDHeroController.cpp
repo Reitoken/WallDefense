@@ -5,6 +5,9 @@
 #include "Weapons/WDWeaponInventoryComponent.h"
 #include "Weapons/WDWeaponComponent.h"
 #include "Weapons/WDWeaponData.h"
+#include "UI/WDPauseWidget.h"
+#include "GameModes/WDStageGameMode.h"
+#include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
@@ -45,6 +48,7 @@ void AWDHeroController::SetupInputComponent()
 	Input->BindAction(FireAction, ETriggerEvent::Started, this, &AWDHeroController::OnFireStarted);
 	Input->BindAction(FireAction, ETriggerEvent::Completed, this, &AWDHeroController::OnFireCompleted);
 	Input->BindAction(NextWeaponAction, ETriggerEvent::Started, this, &AWDHeroController::OnNextWeapon);
+	Input->BindAction(PauseAction, ETriggerEvent::Started, this, &AWDHeroController::OnTogglePause);
 }
 
 namespace
@@ -99,6 +103,14 @@ void AWDHeroController::BuildInputObjects()
 	MappingContext->MapKey(NextWeaponAction, EKeys::MouseScrollDown);
 	MappingContext->MapKey(NextWeaponAction, EKeys::Tab);
 	MappingContext->MapKey(NextWeaponAction, EKeys::Gamepad_RightShoulder);
+
+	// --- Pause (P in PIE — Escape stops the PIE session; Start on gamepad) ---
+	PauseAction = NewObject<UInputAction>(this, TEXT("IA_Pause"));
+	PauseAction->ValueType = EInputActionValueType::Boolean;
+	PauseAction->bTriggerWhenPaused = true; // the same key must UNpause
+	MappingContext->MapKey(PauseAction, EKeys::P);
+	MappingContext->MapKey(PauseAction, EKeys::Escape);
+	MappingContext->MapKey(PauseAction, EKeys::Gamepad_Special_Right);
 }
 
 void AWDHeroController::PlayerTick(float DeltaTime)
@@ -190,6 +202,43 @@ void AWDHeroController::OnNextWeapon(const FInputActionValue& Value)
 			Debug->DrawText(Hero->GetActorLocation() + FVector(0, 0, 140.f), Weapon->DisplayName.ToString(), Weapon->Element, 1.f);
 			Debug->DrawGroundCircle(Hero->GetActorLocation(), 150.f, Weapon->Element, 1.f);
 		}
+	}
+}
+
+void AWDHeroController::OnTogglePause(const FInputActionValue& Value)
+{
+	if (PauseWidget)
+	{
+		HandleResumeFromPause();
+		return;
+	}
+	PauseWidget = CreateWidget<UWDPauseWidget>(this, UWDPauseWidget::StaticClass());
+	if (PauseWidget)
+	{
+		PauseWidget->OnResumeRequested.AddDynamic(this, &AWDHeroController::HandleResumeFromPause);
+		PauseWidget->OnAbandonRequested.AddDynamic(this, &AWDHeroController::HandleAbandonFromPause);
+		PauseWidget->AddToViewport(/*ZOrder=*/50);
+		SetPause(true);
+	}
+}
+
+void AWDHeroController::HandleResumeFromPause()
+{
+	SetPause(false);
+	if (PauseWidget)
+	{
+		PauseWidget->RemoveFromParent();
+		PauseWidget = nullptr;
+	}
+}
+
+void AWDHeroController::HandleAbandonFromPause()
+{
+	HandleResumeFromPause();
+	// Abandoning = defeat, the run loot is KEPT (GDD §11).
+	if (AWDStageGameMode* StageMode = GetWorld()->GetAuthGameMode<AWDStageGameMode>())
+	{
+		StageMode->AbandonStage();
 	}
 }
 

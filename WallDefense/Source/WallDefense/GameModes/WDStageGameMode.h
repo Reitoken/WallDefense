@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Core/WDTypes.h"
 #include "Wall/WDWallData.h"
 #include "WDStageGameMode.generated.h"
 
@@ -9,6 +10,7 @@ class AWDWall;
 class AWDStageDirector;
 class UWDStageData;
 class UWDLoadingScreenWidget;
+class UWDStageSummaryWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWDOnStageFinished, bool, bVictory, int32, Stars);
 
@@ -16,8 +18,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWDOnStageFinished, bool, bVictory,
  * THE assembler of a playable stage (ArchitectureTechnique §6.6): spawns heroine + wall +
  * director, preloads the stage bundle behind the loading screen, fades in, then arbitrates —
  * wall dead = defeat, waves cleared = victory -> stars from the wall's remaining HP (GDD §2.2).
- * Debug loop: the level reloads a few seconds after the verdict (the menu arrives at step 6).
- * Use as GameMode Override in any map with a floor.
+ * Tallies the run loot from the heroine's magnet; at the verdict, applies the rewards
+ * (× star multiplier, ALWAYS kept on defeat) to the Progression, auto-saves, and shows
+ * the summary screen (replay / back to the hub). Use as GameMode Override in any map.
  */
 UCLASS(Blueprintable)
 class WALLDEFENSE_API AWDStageGameMode : public AGameModeBase
@@ -29,6 +32,10 @@ public:
 
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void StartPlay() override;
+
+	/** Pause menu "abandon": counts as a defeat, the run loot is kept (GDD §11). */
+	UFUNCTION(BlueprintCallable, Category = "WD|Stage")
+	void AbandonStage();
 
 	UPROPERTY(BlueprintAssignable, Category = "WD|Stage")
 	FWDOnStageFinished OnStageFinished;
@@ -62,9 +69,19 @@ protected:
 	UFUNCTION()
 	void HandleStageCompleted();
 
+	UFUNCTION()
+	void HandleLootCollected(EWDLootType Type, EWDElement Element, EWDResourceTier Tier, int32 Amount);
+
+	UFUNCTION()
+	void HandleSummaryReplay();
+
+	UFUNCTION()
+	void HandleSummaryMenu();
+
 private:
-	void ScheduleRestart(float Delay);
-	void RestartStageLevel();
+	/** Shared verdict path: rewards -> Progression -> auto-save -> summary screen. */
+	void FinishStage(bool bVictory);
+	void TravelTo(const TCHAR* GameModeOption);
 
 	UPROPERTY(Transient)
 	TObjectPtr<AWDWall> Wall;
@@ -75,7 +92,12 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UWDLoadingScreenWidget> LoadingScreen;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UWDStageSummaryWidget> SummaryWidget;
+
+	/** Everything the magnet grabbed this run (GDD §7). */
+	FWDLootBundle RunLoot;
+
 	FTimerHandle StartTimer;
-	FTimerHandle RestartTimer;
 	bool bStageOver = false;
 };

@@ -3,6 +3,7 @@
 #include "Monsters/WDMovePatternComponent.h"
 #include "Monsters/WDWallAttackComponent.h"
 #include "Monsters/WDAuraHealComponent.h"
+#include "Loot/WDLootDropComponent.h"
 #include "Combat/WDHealthComponent.h"
 #include "Combat/WDHitResponseComponent.h"
 #include "Core/WDDebugSubsystem.h"
@@ -39,6 +40,7 @@ AWDMonster::AWDMonster()
 	WallAttack = CreateDefaultSubobject<UWDWallAttackComponent>(TEXT("WallAttack"));
 	HealAura = CreateDefaultSubobject<UWDAuraHealComponent>(TEXT("HealAura"));
 	HitResponse = CreateDefaultSubobject<UWDHitResponseComponent>(TEXT("HitResponse"));
+	LootDrop = CreateDefaultSubobject<UWDLootDropComponent>(TEXT("LootDrop"));
 }
 
 void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float StageBaseWallDamage, AActor* Target)
@@ -81,6 +83,11 @@ void AWDMonster::InitFromData(UWDMonsterData* Data, float StageBaseHealth, float
 	WallAttack->Configure(Target, StageBaseWallDamage * Data->WallDamageMultiplier, Data->AttackRange, Data->AttackInterval, Data->bRangedAttack, EWDElement::Normal);
 	HealAura->Configure(Data->HealPulseAmount, Data->HealPulseInterval, Data->HealPulseRadius, EWDElement::Ice);
 	HitResponse->Configure(Body, Tint, Data->Role == EWDMonsterRole::Boss);
+	// Drops: the monster's elemental material = its weakness (the same color signage).
+	// Tier follows the difficulty mode at step 7 — Normal drops Fragments for now (GDD §2.5).
+	const EWDElement ResourceElement = Data->ElementalProfile.bHasWeakness ? Data->ElementalProfile.Weakness : EWDElement::Normal;
+	LootDrop->Configure(Data->GoldDropMin, Data->GoldDropMax, Data->XPDrop, Data->ResourceDropChance,
+		Data->ResourceDropAmount, ResourceElement, EWDResourceTier::Fragments);
 
 	Health->OnDamaged.AddDynamic(this, &AWDMonster::HandleDamagedForward);
 	Health->OnDied.AddDynamic(this, &AWDMonster::HandleDied);
@@ -132,6 +139,7 @@ void AWDMonster::HandleDamagedForward(const FWDDamageEvent& DamageEvent, float A
 void AWDMonster::HandleDied(AActor* Killer)
 {
 	HitResponse->HandleDied(Killer);
+	LootDrop->SpawnDrops(); // gold/XP/material scatter where it fell (GDD §7)
 	OnKilled.Broadcast(this);
 
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);

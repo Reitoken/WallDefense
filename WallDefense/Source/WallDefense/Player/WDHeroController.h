@@ -8,6 +8,7 @@
 class AWDHeroCharacter;
 class UInputAction;
 class UInputMappingContext;
+class UWDPauseWidget;
 struct FInputActionValue;
 
 /**
@@ -35,6 +36,14 @@ protected:
 	void OnFireStarted(const FInputActionValue& Value);
 	void OnFireCompleted(const FInputActionValue& Value);
 	void OnNextWeapon(const FInputActionValue& Value);
+	void OnTogglePause(const FInputActionValue& Value);
+
+	/** Pause menu choices (GDD §11: abandoning = defeat, run loot kept). */
+	UFUNCTION()
+	void HandleResumeFromPause();
+
+	UFUNCTION()
+	void HandleAbandonFromPause();
 
 	AWDHeroCharacter* GetHero() const;
 
@@ -46,8 +55,11 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UInputAction> AimAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> FireAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> NextWeaponAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> PauseAction;
 
 private:
+	UPROPERTY(Transient) TObjectPtr<UWDPauseWidget> PauseWidget;
+
 	/** Last right-stick aim this frame; zero means "use the mouse". */
 	FVector2D StickAim = FVector2D::ZeroVector;
 };

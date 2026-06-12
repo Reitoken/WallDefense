@@ -89,6 +89,9 @@
   <div class="grp">Étape 5 — Le mur + la boucle</div>
   <a href="#etape5">Ce qui est implémenté</a>
   <a href="#tester5">Comment tester (étape 5)</a>
+  <div class="grp">Étape 6 — La méta</div>
+  <a href="#etape6">Ce qui est implémenté</a>
+  <a href="#tester6">Comment tester (étape 6)</a>
   <div class="grp">Validation</div>
   <a href="#tests">Tests automatisés</a>
   <div class="grp">Référence</div>
@@ -103,9 +106,9 @@
   <p><strong>Wall Defense</strong> — tower defense incarné, vue top-down : une héroïne défend son mur contre des vagues de monstres dimensionnels en switchant entre <strong>7 armes élémentaires</strong>. 30 stages (6 zones), 3 modes, stage infini.</p>
   <p class="muted">Architecture : composants indépendants · communication par délégués · DataAssets comme ponts de données · UI event-driven · debug-first. Référence complète : <span class="mono">ArchitectureTechnique.md</span>.</p>
   <div class="kpis">
-    <div class="kpi"><div class="v">5/7</div><div class="l">Étapes terminées</div></div>
-    <div class="kpi"><div class="v" id="kpi-tests">31/31</div><div class="l">Tests auto validés</div></div>
-    <div class="kpi"><div class="v">33</div><div class="l">Classes livrées</div></div>
+    <div class="kpi"><div class="v">6/7</div><div class="l">Étapes terminées</div></div>
+    <div class="kpi"><div class="v" id="kpi-tests">37/37</div><div class="l">Tests auto validés</div></div>
+    <div class="kpi"><div class="v">44</div><div class="l">Classes livrées</div></div>
   </div>
   <p style="margin-top:14px">
     <span class="elem" style="background:var(--normal)"></span>Normal&nbsp;&nbsp;
@@ -140,13 +143,13 @@
     <div class="title">Le mur + la boucle <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
     <div class="desc">Le vrai mur (PV, défense, skills one-shot : bouclier de départ, onde de répulsion, auto-réparation) · victoire/défaite · étoiles selon les PV du mur · écran de chargement + préchargement + fondu. <strong>Jalon atteint : boucle complète jouable en debug.</strong></div>
   </div></div>
-  <div class="step"><div class="num">6</div><div class="body">
-    <div class="title">Méta <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
-    <div class="desc">Loot + aimant · Progression · sauvegarde 5 slots · hub · pause/résumé · options + langue.</div>
+  <div class="step done"><div class="num">6</div><div class="body">
+    <div class="title">Méta <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
+    <div class="desc">Loot qui droppe, expire et s'aimante · Progression (or, ressources 3 tiers, XP, niveaux d'armes/mur, étoiles) · sauvegarde 5 slots auto · hub minimal (améliorations, slots, options) · pause (abandon = défaite) · écran de résumé · Settings + benchmark au premier lancement. <strong>La boucle <em>try and become stronger</em> tourne.</strong></div>
   </div></div>
   <div class="step"><div class="num">7</div><div class="body">
-    <div class="title">Le reste <span class="badge b-todo">À VENIR</span></div>
-    <div class="desc">Spéciales + vidéos · modes Hard/Enfer · encyclopédie · tenues · skills du mur · histoire · musique dynamique · Steam.</div>
+    <div class="title">Le reste <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
+    <div class="desc">Spéciales + vidéos · paliers d'armes 1–100 · modes Hard/Enfer · encyclopédie · tenues · histoire · musique dynamique · Steam · stages 2+.</div>
   </div></div>
 </div>
 
@@ -446,6 +449,64 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
      3. <code>wd.Debug.Draw 0</code> → plus rien ne se dessine. C'est le rendu de référence des armes de l'étape 3.</p>
 </div>
 
+<h2 id="etape6">Étape 6 — Ce qui est implémenté <span class="badge b-ok">✓</span></h2>
+
+<details open>
+  <summary>Le loot vivant — drops, expiration, aimant <span class="badge b-ok">livré + 2 tests</span></summary>
+  <div class="inner">
+    <p>Chaque monstre vaincu éparpille ses drops (GDD §7) : <strong>or</strong> (doré), <strong>XP</strong> (vert), <strong>ressource élémentaire de sa faiblesse</strong> (couleur de l'élément). Les drops <strong>vivent 10 s puis expirent</strong> (clignotement les 3 dernières secondes) — ramasser ou continuer à tuer, la vraie décision.</p>
+    <p>L'<strong>aimant</strong> de l'héroïne (<span class="mono">UWDMagnetComponent</span>) attire tout ce qui entre dans son rayon — rayon qui <strong>grandit avec le niveau du personnage</strong>. Le GameMode comptabilise la course ; en fin de stage le butin est appliqué <strong>× le multiplicateur d'étoiles</strong> (arrondi AU-DESSUS), et <strong>toujours conservé en défaite</strong> (×1) — « perdre fait progresser ».</p>
+    <p class="muted">Tables de drops dans les fiches monstres (le Rempart paie mieux, le boss est un jackpot : 60–80 or, 50 XP, 4 fragments garantis). Tier des ressources : Fragments en Normal — Cristaux/Noyaux avec les modes Hard/Enfer (étape 7).</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">UWDProgressionSubsystem</span> + <span class="mono">UWDSaveSubsystem</span> — l'état méta et les 5 slots <span class="badge b-ok">livré + 3 tests</span></summary>
+  <div class="inner">
+    <p><strong>Progression</strong> : or, ressources (élément × 3 tiers), XP/niveau du perso, <strong>niveaux d'armes 1–100</strong> (coût : or + matériau de l'élément ; Fragments ≤40, Cristaux ≤70, Noyaux ensuite), niveau du mur, étoiles par stage×mode (le meilleur score est gardé). Un échec d'achat ne dépense jamais rien. <strong>Le niveau d'arme augmente réellement les dégâts en jeu</strong> (+8 %/niveau debug) et le niveau du perso agrandit l'aimant.</p>
+    <p><strong>Sauvegarde</strong> : 5 slots disque (<span class="mono">WDSlot_0..4</span>), <strong>auto-load</strong> du slot au démarrage, <strong>auto-save</strong> après chaque stage et chaque amélioration. Round-trip sérialisation testé en mémoire.</p>
+  </div>
+</details>
+
+<details open>
+  <summary>Hub, pause, résumé — la boucle complète au pad <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p><span class="mono">AWDHubGameMode</span> + <span class="mono">UWDHubWidget</span> : le <strong>QG minimal</strong> — portefeuille, amélioration du mur et des 7 armes (boutons grisés si trop pauvre), 5 slots, qualité graphique, langue, « LANCER LE STAGE 1 ». Le lancement recharge la <strong>même map</strong> en mode stage (<code>?game=</code>) — aucune map dédiée à créer.</p>
+    <p><span class="mono">UWDPauseWidget</span> : <strong>P</strong> (ou Échap hors PIE, Start à la manette) — reprendre / <strong>abandonner</strong> (= défaite, loot conservé). <span class="mono">UWDStageSummaryWidget</span> : l'écran de dopamine — verdict, étoiles, butin détaillé × multiplicateur (+ bonus d'or fixe par étoile), XP, puis <strong>Rejouer</strong> ou <strong>Quartier général</strong>.</p>
+    <p><span class="mono">UWDSettingsSubsystem</span> : langue (<code>SetCurrentCulture</code>, persistée), volumes (stockés, routés vers l'audio à l'étape 7), qualité (scalabilité UE) — et au <strong>premier lancement : benchmark matériel → préréglage auto</strong>. Config utilisateur, indépendante des slots.</p>
+  </div>
+</details>
+
+<div class="card">
+  <strong>Fichiers créés / modifiés</strong>
+  <table>
+    <tr><td><code>Source/WallDefense/Loot/WDLootPickup + WDLootDropComponent</code></td><td class="muted">drops, expiration, tables par fiche</td></tr>
+    <tr><td><code>Source/WallDefense/Player/WDMagnetComponent</code></td><td class="muted">attraction + collecte, rayon par niveau</td></tr>
+    <tr><td><code>Source/WallDefense/Core/WDProgressionSubsystem + WDProgressionMath</code></td><td class="muted">état méta, courbes debug testées</td></tr>
+    <tr><td><code>Source/WallDefense/Core/WDSaveGame + WDSaveSubsystem</code></td><td class="muted">5 slots, auto-save/load</td></tr>
+    <tr><td><code>Source/WallDefense/Core/WDSettingsSubsystem</code></td><td class="muted">langue, volumes, qualité, benchmark</td></tr>
+    <tr><td><code>Source/WallDefense/UI/WDHubWidget + WDPauseWidget + WDStageSummaryWidget + WDWidgetKit</code></td><td class="muted">les menus debug-first</td></tr>
+    <tr><td><code>Source/WallDefense/GameModes/WDHubGameMode</code></td><td class="muted">le QG, navigation par ?game=</td></tr>
+    <tr><td><code>StageGameMode / Monster / HeroCharacter / HeroController / WeaponComponent</code></td><td class="muted">tally du loot, résumé, pause, aimant, dégâts par niveau</td></tr>
+    <tr><td><code>Source/WallDefense/Tests/WDProgressionTests + WDLootTests</code></td><td class="muted">6 tests automatisés</td></tr>
+  </table>
+</div>
+
+<h2 id="tester6">Comment tester dans Unreal — Étape 6</h2>
+
+<div class="card">
+  <h3>La boucle méta complète (15 minutes)</h3>
+  <p>1. <code>L_Sandbox</code> → <strong>GameMode Override</strong> → <code>WDHubGameMode</code> → <strong>Play</strong>. Le <strong>QG</strong> s'affiche (or 0, tout au niveau 1).<br><br>
+     ✅ <strong>Lancer le stage</strong> : la map se recharge en mode stage (chargement → fondu → vagues).<br>
+     ✅ <strong>Le loot</strong> : chaque kill éparpille des billes — dorées (or), vertes (XP), colorées (fragments de la faiblesse). Approche-toi : <strong>elles volent vers toi</strong>. Ignore-en : elles clignotent puis disparaissent à 10 s.<br>
+     ✅ <strong>Pause</strong> : touche <strong>P</strong> (Échap ferme le PIE — en build c'est Échap aussi ; Start à la manette) → Reprendre / Abandonner. Abandonner = défaite mais le butin reste.<br>
+     ✅ <strong>Résumé</strong> : à la fin — étoiles, butin × multiplicateur (défaite = ×1, tout conservé), bonus d'or par étoile, XP. « Rejouer » ou « Quartier général ».<br>
+     ✅ <strong>Améliorer</strong> : au QG, monte le <strong>lance-flammes</strong> (or + fragments de Feu — farm les monstres rouges !) puis rejoue : les ticks font plus mal (+8 %/niveau). Monte le <strong>mur</strong> : plus de PV et ses skills se débloquent aux niveaux 2/3/4.<br>
+     ✅ <strong>Sauvegarde</strong> : quitte le PIE, relance — l'or/XP/niveaux sont là (slot 1 auto). Change de slot : progression séparée.<br>
+     ✅ <strong>Aimant</strong> : à force d'XP (niveau 2 à 100 XP), le rayon d'attraction s'élargit visiblement.<br>
+     ✅ <strong>Options</strong> : qualité Basse→Épique appliquée immédiatement ; langue FR/EN (les textes restent FR tant que la localisation n'est pas compilée — étape 7).</p>
+</div>
+
 <h2 id="tests">Tests automatisés — dernier passage</h2>
 <div class="card">
   <table id="testtable">
@@ -481,6 +542,12 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
     <tr><td class="mono">Wall.SkillsLockedByLevel</td><td>Mur niveau 1 : aucun skill armé, aucune condition ne déclenche rien</td><td>✅</td></tr>
     <tr><td class="mono">Preload.CollectsSoftReferences</td><td>La réflexion ramasse les TSoftObjectPtr (le mesh du mur), racine nulle sans crash</td><td>✅</td></tr>
     <tr><td class="mono">Preload.StageBundle</td><td>Bundle de stage dédupliqué ; stage debug seul = zéro réf (pas encore d'assets)</td><td>✅</td></tr>
+    <tr><td class="mono">Loot.DeterministicRolls</td><td>Or dans [min,max], XP, ressource de l'élément ; chance 0 = rien ; même graine = mêmes drops</td><td>✅</td></tr>
+    <tr><td class="mono">Loot.BundleMerge</td><td>Le butin de course fusionne élément+tier, sépare le reste</td><td>✅</td></tr>
+    <tr><td class="mono">Progression.MathCurves</td><td>Courbe d'XP, aimant croissant, tiers Fragments/Cristaux/Noyaux aux bons niveaux, arrondi AU-DESSUS</td><td>✅</td></tr>
+    <tr><td class="mono">Progression.WalletAndUpgrades</td><td>Portefeuille sûr (échec = zéro dépense), arme +1 = or + matériau, mur plafonné</td><td>✅</td></tr>
+    <tr><td class="mono">Progression.RunRewardsAndStars</td><td>Récompenses ×1,5 créditées ; étoiles par stage×mode, le meilleur score est gardé</td><td>✅</td></tr>
+    <tr><td class="mono">Save.RoundTrip</td><td>État complet sérialisé puis restauré à l'identique (or, XP, ressources, étoiles)</td><td>✅</td></tr>
   </table>
   <p class="muted">Exécution headless (sans ouvrir l'éditeur) :</p>
   <pre>& "C:\Unreal Engine\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
@@ -492,14 +559,14 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
 <p class="muted">L'architecture complète (descriptions, événements, liens) : <span class="mono">ArchitectureTechnique.md</span>. Statut de chaque classe :</p>
 
 <details>
-  <summary>Subsystems persistants <span class="badge b-ok">2/8 livrés</span></summary>
+  <summary>Subsystems persistants <span class="badge b-ok">5/8 livrés</span></summary>
   <div class="inner"><table>
     <tr><th>Classe</th><th>Rôle</th><th>Étape</th></tr>
     <tr><td class="mono">UWDDebugSubsystem</td><td>dessin debug coloré par élément, CVar unique</td><td><span class="badge b-ok">1 ✓</span></td></tr>
-    <tr><td class="mono">UWDSaveSubsystem</td><td>5 slots, auto-save/load</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">UWDProgressionSubsystem</td><td>or, ressources, XP, niveaux, étoiles, découvertes</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">UWDUISubsystem</td><td>pile d'écrans, fondus, vidéos, pause/auto-pause</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">UWDSettingsSubsystem</td><td>langue, volumes, qualité, remapping (global)</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">UWDSaveSubsystem</td><td>5 slots, auto-save/load</td><td><span class="badge b-ok">6 ✓</span></td></tr>
+    <tr><td class="mono">UWDProgressionSubsystem</td><td>or, ressources 3 tiers, XP, niveaux armes/mur, étoiles (découvertes : étape 7)</td><td><span class="badge b-ok">6 ✓</span></td></tr>
+    <tr><td class="mono">UWDUISubsystem</td><td>pile d'écrans, vidéos de Spéciale, auto-pause</td><td><span class="badge b-todo">7</span></td></tr>
+    <tr><td class="mono">UWDSettingsSubsystem</td><td>langue, volumes, qualité, benchmark 1er lancement (remapping : étape 7)</td><td><span class="badge b-ok">6 ✓</span></td></tr>
     <tr><td class="mono">UWDPreloadSubsystem</td><td>préchargement complet avant stage (réflexion sur les soft refs) + préchauffe du pool</td><td><span class="badge b-ok">5 ✓</span></td></tr>
     <tr><td class="mono">UWDMusicSubsystem</td><td>musique dynamique (jeu + menu)</td><td><span class="badge b-todo">7</span></td></tr>
     <tr><td class="mono">UWDSteamSubsystem</td><td>succès, timeline (isolé, no-op sans Steam)</td><td><span class="badge b-todo">7</span></td></tr>
@@ -518,7 +585,7 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
     <tr><td class="mono">DA_Stage (UWDStageData)</td><td>un stage : vagues, monstres par vague, bases de stats (récompenses : étape 6)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">Hit response (composant + GameFeel)</td><td>flash, knockback, chiffres, hitstop, vibration (DataAsset de recettes : avec les assets)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">DA_Wall (UWDWallData)</td><td>le mur : PV/défense par niveau, skills one-shot, mesh optionnel (coûts : étape 6)</td><td><span class="badge b-ok">5 ✓</span></td></tr>
-    <tr><td class="mono">DA_Character / DA_Outfit</td><td>perso, tenues</td><td><span class="badge b-todo">6–7</span></td></tr>
+    <tr><td class="mono">DA_Character / DA_Outfit</td><td>perso (courbes XP/aimant — debug dans WDProgressionMath en attendant), tenues</td><td><span class="badge b-todo">7</span></td></tr>
   </table></div>
 </details>
 
@@ -535,7 +602,8 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
     <tr><td class="mono">UWDGameFeelSubsystem</td><td>hitstop, vibration manette (camera shake : avec assets)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
     <tr><td class="mono">AWDWall + UWDWallSkillsComponent</td><td>le mur : PV global, défense, skills one-shot, façade à répartition</td><td><span class="badge b-ok">5 ✓</span></td></tr>
     <tr><td class="mono">AWDStageGameMode</td><td>la boucle : assemblage, victoire/défaite, étoiles, relance debug</td><td><span class="badge b-ok">5 ✓</span></td></tr>
-    <tr><td class="mono">AWDLootPickup + Magnet</td><td>drops qui expirent, aimant évolutif</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">AWDLootPickup + LootDrop + Magnet</td><td>drops qui expirent (10 s + clignotement), tables par fiche, aimant évolutif</td><td><span class="badge b-ok">6 ✓</span></td></tr>
+    <tr><td class="mono">AWDHubGameMode</td><td>le QG : améliorations, slots, options, lancement (?game=)</td><td><span class="badge b-ok">6 ✓</span></td></tr>
     <tr><td class="mono">UWDHeroAnimInstance</td><td>état d'anim de l'héroïne exposé à l'AnimBP (Speed, bIsMoving, MoveDirection)</td><td><span class="badge b-ok">2 ✓</span></td></tr>
     <tr><td class="mono">UWDMonsterAnimInstance</td><td>état d'anim des monstres (bIsDead, bIsAttacking, états…)</td><td><span class="badge b-ok">4 ✓</span></td></tr>
   </table></div>
@@ -546,10 +614,11 @@ Multiplicateur de récompenses : ×1 / ×1,25 / ×1,5 / ×2</pre>
   <div class="inner"><table>
     <tr><th>Widget</th><th>Rôle</th><th>Étape</th></tr>
     <tr><td class="mono">HUD / MonsterStatus / DamageNumbers</td><td>mur, armes, vagues, barres de vie (désactivables), chiffres</td><td><span class="badge b-todo">4–5</span></td></tr>
-    <tr><td class="mono">Pause / StageSummary</td><td>pause (abandon = défaite), écran de dopamine</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">Hub / Upgrade / Encyclopédie / StageSelect</td><td>le menu</td><td><span class="badge b-todo">6–7</span></td></tr>
+    <tr><td class="mono">Pause / StageSummary</td><td>pause (abandon = défaite, loot conservé), écran de dopamine</td><td><span class="badge b-ok">6 ✓</span></td></tr>
+    <tr><td class="mono">Hub (minimal : améliorations, slots, options)</td><td>le QG debug-first</td><td><span class="badge b-ok">6 ✓</span></td></tr>
+    <tr><td class="mono">Encyclopédie / StageSelect</td><td>découvertes, zones et modes</td><td><span class="badge b-todo">7</span></td></tr>
     <tr><td class="mono">UWDLoadingScreenWidget</td><td>écran de chargement event-driven (visuel debug intégré, habillage BP plus tard)</td><td><span class="badge b-ok">5 ✓</span></td></tr>
-    <tr><td class="mono">Options / LanguageSelect / SaveSlots</td><td>options, 1er démarrage, slots</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">Options / SaveSlots (intégrés au hub)</td><td>qualité, langue, slots — l'écran de langue dédié arrive avec la localisation</td><td><span class="badge b-ok">6 ✓</span></td></tr>
   </table></div>
 </details>
 
