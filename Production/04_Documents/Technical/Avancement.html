@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wall Defense — Architecture &amp; Avancement</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#181c2e; --panel2:#1f2440; --text:#e8eaf2; --muted:#9aa0b8;
+    --accent:#7c5cff; --ok:#3ddc84; --todo:#5a6080; --warn:#ffb347; --line:#2a3050;
+    --fire:#ff4012; --ice:#66bfff; --bolt:#ffe61a; --wind:#1ae6cc; --light:#ffffff; --dark:#8c33d9; --normal:#999;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh;}
+  a{color:var(--accent); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  nav{position:fixed; top:0; left:0; bottom:0; width:240px; background:var(--panel); padding:24px 16px; overflow-y:auto; border-right:1px solid var(--line);}
+  nav h1{font-size:18px; margin-bottom:4px;}
+  nav .sub{font-size:12px; color:var(--muted); margin-bottom:20px;}
+  nav a{display:block; padding:8px 10px; border-radius:8px; color:var(--text); font-size:14px; margin-bottom:2px;}
+  nav a:hover{background:var(--panel2); text-decoration:none;}
+  nav .grp{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:16px 0 6px 10px;}
+
+  main{margin-left:240px; padding:32px 40px; max-width:1100px; width:100%;}
+  h2{font-size:24px; margin:36px 0 12px; scroll-margin-top:20px;}
+  h3{font-size:17px; margin:20px 0 8px; color:var(--accent);}
+  p{line-height:1.55; color:var(--text); margin-bottom:10px;}
+  .muted{color:var(--muted);}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:14px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:14px;}
+
+  .badge{display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; vertical-align:middle;}
+  .b-ok{background:rgba(61,220,132,.15); color:var(--ok); border:1px solid var(--ok);}
+  .b-todo{background:rgba(90,96,128,.2); color:var(--muted); border:1px solid var(--todo);}
+  .b-now{background:rgba(124,92,255,.15); color:var(--accent); border:1px solid var(--accent);}
+
+  .steps{display:flex; flex-direction:column; gap:10px;}
+  .step{display:flex; gap:14px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+  .step .num{min-width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--panel2); color:var(--muted);}
+  .step.done .num{background:var(--ok); color:#08361e;}
+  .step .body{flex:1;}
+  .step .title{font-weight:600;}
+  .step .desc{font-size:13px; color:var(--muted); margin-top:2px;}
+
+  details{background:var(--panel); border:1px solid var(--line); border-radius:12px; margin-bottom:10px; overflow:hidden;}
+  details summary{cursor:pointer; padding:13px 16px; font-weight:600; list-style:none; display:flex; align-items:center; gap:10px;}
+  details summary::before{content:"▸"; color:var(--accent); transition:transform .15s;}
+  details[open] summary::before{transform:rotate(90deg);}
+  details .inner{padding:4px 18px 16px; border-top:1px solid var(--line);}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px; margin:8px 0;}
+  th{color:var(--muted); text-align:left; font-weight:600; padding:7px 10px; border-bottom:1px solid var(--line); font-size:12px; text-transform:uppercase; letter-spacing:.5px;}
+  td{padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.45;}
+  tr:last-child td{border-bottom:none;}
+  code,.mono{font-family:Consolas,monospace; font-size:13px; background:var(--panel2); padding:1px 6px; border-radius:5px; color:#c9d4ff;}
+  pre{background:#0b0e1a; border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.5; margin:10px 0; color:#c9d4ff; font-family:Consolas,monospace;}
+
+  .elem{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:middle;}
+  .pill{display:inline-block; border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:4px 10px; margin:3px 4px 3px 0; font-size:13px;}
+  .hero{background:linear-gradient(135deg,#1d2240,#141830); border:1px solid var(--line); border-radius:14px; padding:24px 26px; margin-bottom:18px;}
+  .hero h2{margin-top:0;}
+  .kpis{display:flex; gap:14px; flex-wrap:wrap; margin-top:14px;}
+  .kpi{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 18px; text-align:center;}
+  .kpi .v{font-size:22px; font-weight:700; color:var(--ok);}
+  .kpi .l{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>🏰 Wall Defense</h1>
+  <div class="sub">Architecture &amp; avancement<br>Mise à jour : 12 juin 2026</div>
+  <div class="grp">Suivi</div>
+  <a href="#apercu">Vue d'ensemble</a>
+  <a href="#roadmap">Feuille de route</a>
+  <div class="grp">Étape 1 — Fondations</div>
+  <a href="#etape1">Ce qui est implémenté</a>
+  <a href="#tester">Comment tester dans Unreal</a>
+  <a href="#tests">Tests automatisés</a>
+  <div class="grp">Référence</div>
+  <a href="#classes">Les classes du jeu</a>
+  <a href="#conventions">Conventions</a>
+</nav>
+
+<main>
+
+<div class="hero" id="apercu">
+  <h2>Vue d'ensemble</h2>
+  <p><strong>Wall Defense</strong> — tower defense incarné, vue top-down : une héroïne défend son mur contre des vagues de monstres dimensionnels en switchant entre <strong>7 armes élémentaires</strong>. 30 stages (6 zones), 3 modes, stage infini.</p>
+  <p class="muted">Architecture : composants indépendants · communication par délégués · DataAssets comme ponts de données · UI event-driven · debug-first. Référence complète : <span class="mono">ArchitectureTechnique.md</span>.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="v">1/7</div><div class="l">Étapes terminées</div></div>
+    <div class="kpi"><div class="v" id="kpi-tests">10/10</div><div class="l">Tests auto validés</div></div>
+    <div class="kpi"><div class="v">3</div><div class="l">Classes livrées</div></div>
+  </div>
+  <p style="margin-top:14px">
+    <span class="elem" style="background:var(--normal)"></span>Normal&nbsp;&nbsp;
+    <span class="elem" style="background:var(--fire)"></span>Feu&nbsp;&nbsp;
+    <span class="elem" style="background:var(--ice)"></span>Glace&nbsp;&nbsp;
+    <span class="elem" style="background:var(--bolt)"></span>Foudre&nbsp;&nbsp;
+    <span class="elem" style="background:var(--wind)"></span>Vent&nbsp;&nbsp;
+    <span class="elem" style="background:var(--light); border:1px solid #555"></span>Lumière&nbsp;&nbsp;
+    <span class="elem" style="background:var(--dark)"></span>Ténèbres
+  </p>
+</div>
+
+<h2 id="roadmap">Feuille de route</h2>
+<div class="steps">
+  <div class="step done"><div class="num">1</div><div class="body">
+    <div class="title">Fondations <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
+    <div class="desc">Types partagés (éléments, dégâts, profils élémentaires) · composant de vie universel (faiblesse/résistance, défense %, bouclier) · debug centralisé coloré par élément.</div>
+  </div></div>
+  <div class="step"><div class="num">2</div><div class="body">
+    <div class="title">Héroïne top-down <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
+    <div class="desc">Personnage libre (twin-stick), contrôleur 2 schémas (souris / manette), caméra Zelda-like — en capsule de debug.</div>
+  </div></div>
+  <div class="step"><div class="num">3</div><div class="body">
+    <div class="title">Armes debug-first <span class="badge b-todo">À VENIR</span></div>
+    <div class="desc">DA_Weapon · WeaponComponent · projectiles à comportements (perçant, rebond, fragments, autoguidé, zone) · pool.</div>
+  </div></div>
+  <div class="step"><div class="num">4</div><div class="body">
+    <div class="title">Monstres + hit response <span class="badge b-todo">À VENIR</span></div>
+    <div class="desc">AWDMonster · patterns · fiches zone 1 · StageDirector + vagues · ressenti d'impact (flash, hitstop, chiffres).</div>
+  </div></div>
+  <div class="step"><div class="num">5</div><div class="body">
+    <div class="title">Le mur + la boucle <span class="badge b-todo">À VENIR</span></div>
+    <div class="desc">AWDWall · victoire/défaite · étoiles · écran de chargement + préchargement. <strong>Jalon : boucle complète jouable en debug.</strong></div>
+  </div></div>
+  <div class="step"><div class="num">6</div><div class="body">
+    <div class="title">Méta <span class="badge b-todo">À VENIR</span></div>
+    <div class="desc">Loot + aimant · Progression · sauvegarde 5 slots · hub · pause/résumé · options + langue.</div>
+  </div></div>
+  <div class="step"><div class="num">7</div><div class="body">
+    <div class="title">Le reste <span class="badge b-todo">À VENIR</span></div>
+    <div class="desc">Spéciales + vidéos · modes Hard/Enfer · encyclopédie · tenues · skills du mur · histoire · musique dynamique · Steam.</div>
+  </div></div>
+</div>
+
+<h2 id="etape1">Étape 1 — Ce qui est implémenté <span class="badge b-ok">✓</span></h2>
+
+<details open>
+  <summary><span class="mono">WDTypes.h</span> — le vocabulaire commun du jeu <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p>Les types que <em>tout</em> le jeu utilisera, sans aucune dépendance :</p>
+    <table>
+      <tr><th>Type</th><th>Rôle</th></tr>
+      <tr><td><code>EWDElement</code></td><td>Les 7 éléments (Normal, Feu, Glace, Foudre, Vent, Lumière, Ténèbres).</td></tr>
+      <tr><td><code>EWDDifficulty</code></td><td>Les 3 modes : Normal, Hard, Enfer.</td></tr>
+      <tr><td><code>EWDElementalMatch</code></td><td>Le verdict d'un impact : Neutre / <strong>Faiblesse</strong> / <strong>Résisté</strong> — alimentera les chiffres de dégâts (grande icône / petite + flèche).</td></tr>
+      <tr><td><code>FWDDamageEvent</code></td><td>Un paquet de dégâts : montant, élément, auteur, point d'impact.</td></tr>
+      <tr><td><code>FWDElementalProfile</code></td><td>L'identité élémentaire d'un monstre : UNE faiblesse, N résistances. <strong>Règle codée : Normal n'est jamais résisté.</strong></td></tr>
+      <tr><td><code>UWDTypeLibrary</code></td><td><code>GetElementColor()</code> — LA couleur de chaque élément, partagée par le debug, les VFX et l'UI.</td></tr>
+    </table>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">UWDHealthComponent</span> — le composant de vie universel <span class="badge b-ok">livré + 10 tests</span></summary>
+  <div class="inner">
+    <p>Un seul composant de vie pour <strong>tout</strong> (mur, monstres) :</p>
+    <pre>Dégâts appliqués = Montant × MultiplicateurÉlémentaire × 100 / (100 + Défense)
+   Faiblesse  : ×1,75        Résistance : ×0,5        Neutre : ×1
+   Le BOUCLIER absorbe d'abord, la vie ensuite.</pre>
+    <p>Événements exposés (quiconque peut écouter, le composant ne connaît personne) :
+      <span class="pill">OnHealthChanged</span><span class="pill">OnShieldChanged</span><span class="pill">OnDamaged (+ verdict élémentaire)</span><span class="pill">OnShieldBroken</span><span class="pill">OnDied</span></p>
+    <p class="muted">API : ApplyWDDamage · Heal · AddShield · Kill · ResetToFull · GetElementalMatch. L'ancien <code>HealthComponent</code> reste en place pour le contenu existant ; la migration se fera avec les monstres (étape 4).</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">UWDDebugSubsystem</span> — le dessin debug centralisé <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p>Tout le gameplay dessinera à travers lui : lignes de tir, sphères de projectiles, cercles de zones au sol, impacts, chaînes entre cibles, textes flottants — <strong>colorés par élément</strong>.</p>
+    <p>Une seule commande console contrôle tout : <code>wd.Debug.Draw 0/1</code>. Désactivé → tous les appels deviennent des no-ops, les appelants ne vérifient jamais rien.</p>
+  </div>
+</details>
+
+<div class="card">
+  <strong>Fichiers créés</strong>
+  <table>
+    <tr><td><code>Source/WallDefense/Core/WDTypes.h</code></td><td class="muted">types partagés + couleurs</td></tr>
+    <tr><td><code>Source/WallDefense/Combat/WDHealthComponent.h/.cpp</code></td><td class="muted">vie, bouclier, formule élémentaire</td></tr>
+    <tr><td><code>Source/WallDefense/Core/WDDebugSubsystem.h/.cpp</code></td><td class="muted">debug draw + CVar</td></tr>
+    <tr><td><code>Source/WallDefense/Tests/WDHealthComponentTests.cpp</code></td><td class="muted">9 tests automatisés</td></tr>
+  </table>
+</div>
+
+<h2 id="tester">Comment tester dans Unreal — Étape 1</h2>
+
+<div class="card">
+  <h3>A. Lancer les tests automatisés dans l'éditeur</h3>
+  <p>1. Ouvre le projet (l'éditeur compile/charge le module).<br>
+     2. Menu <strong>Tools → Test Automation</strong> (Session Frontend).<br>
+     3. Dans l'onglet <strong>Automation</strong>, tape <code>WallDefense</code> dans le filtre.<br>
+     4. Coche le groupe <strong>WallDefense.Health</strong> (10 tests) et clique <strong>Start Tests</strong>.<br>
+     ✅ Attendu : 10/10 verts. <span class="muted">(Dernier passage headless le 12 juin 2026 : 10/10, exit code 0.)</span></p>
+</div>
+
+<div class="card">
+  <h3>B. Tester le composant à la main (PIE)</h3>
+  <p>1. Dans n'importe quelle map, crée un Blueprint d'acteur (ex. <code>BP_TestDummy</code>), ajoute-lui le composant <strong>WD Health</strong>.<br>
+     2. Dans le panneau Détails du composant : règle <code>Max Health</code>, une <code>Weakness</code> (coche <code>Has Weakness</code> → Feu), des <code>Resistances</code> (Glace).<br>
+     3. Sur l'événement BeginPlay du BP, appelle <code>Apply WD Damage</code> avec un <code>FWDDamageEvent</code> (Amount 10, Element Feu) et imprime le retour (<code>Print String</code>).<br>
+     ✅ Attendu : <strong>17,5</strong> en Feu (faiblesse), <strong>5</strong> en Glace (résistance), <strong>10</strong> en Normal.<br>
+     4. Branche les événements <code>On Damaged</code> / <code>On Died</code> sur des Print String pour voir les délégués réagir.</p>
+</div>
+
+<div class="card">
+  <h3>C. Voir le debug draw</h3>
+  <p>1. En PIE, ouvre la console (²) et vérifie <code>wd.Debug.Draw</code> (1 par défaut).<br>
+     2. Depuis un BP de test, appelle <code>Get World Subsystem → WD Debug Subsystem</code> puis <code>Draw Ground Circle</code> (rayon 300, Element Feu) : un cercle <span style="color:var(--fire)">orange</span> apparaît au sol.<br>
+     3. <code>wd.Debug.Draw 0</code> → plus rien ne se dessine. C'est le rendu de référence des armes de l'étape 3.</p>
+</div>
+
+<h2 id="tests">Tests automatisés — dernier passage</h2>
+<div class="card">
+  <table id="testtable">
+    <tr><th>Test</th><th>Vérifie</th><th>Statut</th></tr>
+    <tr><td class="mono">Health.BasicDamage</td><td>10 dégâts neutres, défense 0 → 10 appliqués, 90 PV</td><td>✅</td></tr>
+    <tr><td class="mono">Health.WeaknessMultiplier</td><td>Faiblesse Feu → ×1,75 (17,5)</td><td>✅</td></tr>
+    <tr><td class="mono">Health.ResistanceMultiplier</td><td>Résistance Glace → ×0,5 (5)</td><td>✅</td></tr>
+    <tr><td class="mono">Health.NormalNeverResisted</td><td>Normal listé en résistance (donnée mal configurée) → quand même ×1</td><td>✅</td></tr>
+    <tr><td class="mono">Health.PercentDefense</td><td>Défense 100 → dégâts ÷2</td><td>✅</td></tr>
+    <tr><td class="mono">Health.ShieldAbsorbsFirst</td><td>Bouclier 15, dégâts 20 → bouclier cassé, 5 sur la vie</td><td>✅</td></tr>
+    <tr><td class="mono">Health.DeathAndImmunity</td><td>Dégâts létaux → mort ; les morts ne prennent plus rien, ne se soignent plus</td><td>✅</td></tr>
+    <tr><td class="mono">Health.HealClampsAtMax</td><td>Soin plafonné aux PV max</td><td>✅</td></tr>
+    <tr><td class="mono">Health.ResetToFull</td><td>Reset après mort : vivant, PV pleins, bouclier effacé (début de stage)</td><td>✅</td></tr>
+    <tr><td class="mono">Health.FullFormulaStack</td><td>Faiblesse + défense 75 combinées : 10 × 1,75 × 0,571 = 10</td><td>✅</td></tr>
+  </table>
+  <p class="muted">Exécution headless (sans ouvrir l'éditeur) :</p>
+  <pre>& "C:\Unreal Engine\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
+  "c:\GitHub\WallDefense\WallDefense\WallDefense.uproject" `
+  -ExecCmds="Automation RunTests WallDefense; Quit" -nullrhi -unattended -nopause</pre>
+</div>
+
+<h2 id="classes">Référence — les classes du jeu</h2>
+<p class="muted">L'architecture complète (descriptions, événements, liens) : <span class="mono">ArchitectureTechnique.md</span>. Statut de chaque classe :</p>
+
+<details>
+  <summary>Subsystems persistants <span class="badge b-ok">1/7 livré</span></summary>
+  <div class="inner"><table>
+    <tr><th>Classe</th><th>Rôle</th><th>Étape</th></tr>
+    <tr><td class="mono">UWDDebugSubsystem</td><td>dessin debug coloré par élément, CVar unique</td><td><span class="badge b-ok">1 ✓</span></td></tr>
+    <tr><td class="mono">UWDSaveSubsystem</td><td>5 slots, auto-save/load</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">UWDProgressionSubsystem</td><td>or, ressources, XP, niveaux, étoiles, découvertes</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">UWDUISubsystem</td><td>pile d'écrans, fondus, vidéos, pause/auto-pause</td><td><span class="badge b-todo">5–6</span></td></tr>
+    <tr><td class="mono">UWDSettingsSubsystem</td><td>langue, volumes, qualité, remapping (global)</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">UWDPreloadSubsystem</td><td>préchargement complet avant stage + transitions</td><td><span class="badge b-todo">5</span></td></tr>
+    <tr><td class="mono">UWDMusicSubsystem</td><td>musique dynamique (jeu + menu)</td><td><span class="badge b-todo">7</span></td></tr>
+    <tr><td class="mono">UWDSteamSubsystem</td><td>succès, timeline (isolé, no-op sans Steam)</td><td><span class="badge b-todo">7</span></td></tr>
+    <tr><td class="mono">UWDGameFeelSubsystem</td><td>hitstop, camera shake, vibration, ralentis</td><td><span class="badge b-todo">4</span></td></tr>
+  </table></div>
+</details>
+
+<details>
+  <summary>Types &amp; DataAssets (les ponts de données) <span class="badge b-ok">types livrés</span></summary>
+  <div class="inner"><table>
+    <tr><th>Élément</th><th>Rôle</th><th>Étape</th></tr>
+    <tr><td class="mono">WDTypes.h</td><td>éléments, modes, dégâts, profils élémentaires, couleurs</td><td><span class="badge b-ok">1 ✓</span></td></tr>
+    <tr><td class="mono">UWDHealthComponent</td><td>vie universelle : faiblesse/résistance, défense %, bouclier</td><td><span class="badge b-ok">1 ✓</span></td></tr>
+    <tr><td class="mono">DA_Weapon (UWDWeaponData)</td><td>une arme : stats, courbe 1–100, paliers, Spéciale + vidéo, FX/SFX, sockets</td><td><span class="badge b-todo">3</span></td></tr>
+    <tr><td class="mono">DA_Monster (UWDMonsterData)</td><td>une fiche du bestiaire</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">DA_Stage (UWDStageData)</td><td>un stage : vagues, monstres par vague, récompenses</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">DA_HitResponse</td><td>recettes de ressenti d'impact</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">DA_Wall / DA_Character / DA_Outfit</td><td>mur, perso, tenues</td><td><span class="badge b-todo">5–7</span></td></tr>
+  </table></div>
+</details>
+
+<details>
+  <summary>Gameplay (héroïne, mur, monstres, projectiles)</summary>
+  <div class="inner"><table>
+    <tr><th>Classe</th><th>Rôle</th><th>Étape</th></tr>
+    <tr><td class="mono">AWDHeroCharacter + Controller</td><td>héroïne top-down twin-stick, 2 schémas d'input</td><td><span class="badge b-todo">2</span></td></tr>
+    <tr><td class="mono">UWDWeaponInventory / WeaponComponent</td><td>7 armes, switch, tir au socket Muzzle</td><td><span class="badge b-todo">3</span></td></tr>
+    <tr><td class="mono">AWDProjectile + Pool</td><td>projectiles à comportements (perçant, rebond, fragments…)</td><td><span class="badge b-todo">3</span></td></tr>
+    <tr><td class="mono">AWDMonster + patterns + auras</td><td>monstres data-driven, supports (heal/bouclier/accél…)</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">UWDStageDirector</td><td>vagues, chrono inter-vague sans attente, kill streak</td><td><span class="badge b-todo">4</span></td></tr>
+    <tr><td class="mono">AWDWall + skills</td><td>le mur : PV global, skills conditionnels</td><td><span class="badge b-todo">5</span></td></tr>
+    <tr><td class="mono">AWDLootPickup + Magnet</td><td>drops qui expirent, aimant évolutif</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">UWDAnimInstanceBase (+Hero/Monster)</td><td>état d'anim exposé aux AnimBP (bIsMoving, bIsDead…)</td><td><span class="badge b-todo">2/4</span></td></tr>
+  </table></div>
+</details>
+
+<details>
+  <summary>UI (widgets event-driven)</summary>
+  <div class="inner"><table>
+    <tr><th>Widget</th><th>Rôle</th><th>Étape</th></tr>
+    <tr><td class="mono">HUD / MonsterStatus / DamageNumbers</td><td>mur, armes, vagues, barres de vie (désactivables), chiffres</td><td><span class="badge b-todo">4–5</span></td></tr>
+    <tr><td class="mono">Pause / StageSummary</td><td>pause (abandon = défaite), écran de dopamine</td><td><span class="badge b-todo">6</span></td></tr>
+    <tr><td class="mono">Hub / Upgrade / Encyclopédie / StageSelect</td><td>le menu</td><td><span class="badge b-todo">6–7</span></td></tr>
+    <tr><td class="mono">Loading / Options / LanguageSelect / SaveSlots</td><td>chargement, options, 1er démarrage, slots</td><td><span class="badge b-todo">5–6</span></td></tr>
+  </table></div>
+</details>
+
+<h2 id="conventions">Conventions (rappel)</h2>
+<div class="grid">
+  <div class="card"><h3>Sockets</h3><p class="muted"><code>GripPoint</code> (main du perso) · <code>Muzzle</code> (bouche d'arme, position + direction du tir) · <code>Hit</code> (impact monstre) · <code>Status</code> (barre de vie). Tout socket absent → fallback offset, jamais de crash.</p></div>
+  <div class="card"><h3>Données</h3><p class="muted">Tout asset en <code>TSoftObjectPtr</code> dans un DataAsset · courbes <code>UCurveFloat</code> · états en GameplayTags · <code>IsDataValid()</code> partout · texte = <code>FText</code> dès le jour 1.</p></div>
+  <div class="card"><h3>Communication</h3><p class="muted">Composants indépendants · délégués sortants · câblage dans l'acteur propriétaire · chaque composant vit seul dans une map vide.</p></div>
+</div>
+
+<p class="muted" style="margin:30px 0 10px">Wall Defense — document généré pour Pierre · architecture détaillée : <span class="mono">ArchitectureTechnique.md</span> · design : <span class="mono">GDD_WallDefense.md</span></p>
+
+</main>
+</body>
+</html>
