@@ -76,7 +76,11 @@
   <a href="#roadmap">Feuille de route</a>
   <div class="grp">Étape 1 — Fondations</div>
   <a href="#etape1">Ce qui est implémenté</a>
-  <a href="#tester">Comment tester dans Unreal</a>
+  <a href="#tester">Comment tester (étape 1)</a>
+  <div class="grp">Étape 2 — Héroïne</div>
+  <a href="#etape2">Ce qui est implémenté</a>
+  <a href="#tester2">Comment tester (étape 2)</a>
+  <div class="grp">Validation</div>
   <a href="#tests">Tests automatisés</a>
   <div class="grp">Référence</div>
   <a href="#classes">Les classes du jeu</a>
@@ -90,9 +94,9 @@
   <p><strong>Wall Defense</strong> — tower defense incarné, vue top-down : une héroïne défend son mur contre des vagues de monstres dimensionnels en switchant entre <strong>7 armes élémentaires</strong>. 30 stages (6 zones), 3 modes, stage infini.</p>
   <p class="muted">Architecture : composants indépendants · communication par délégués · DataAssets comme ponts de données · UI event-driven · debug-first. Référence complète : <span class="mono">ArchitectureTechnique.md</span>.</p>
   <div class="kpis">
-    <div class="kpi"><div class="v">1/7</div><div class="l">Étapes terminées</div></div>
-    <div class="kpi"><div class="v" id="kpi-tests">10/10</div><div class="l">Tests auto validés</div></div>
-    <div class="kpi"><div class="v">3</div><div class="l">Classes livrées</div></div>
+    <div class="kpi"><div class="v">2/7</div><div class="l">Étapes terminées</div></div>
+    <div class="kpi"><div class="v" id="kpi-tests">14/14</div><div class="l">Tests auto validés</div></div>
+    <div class="kpi"><div class="v">8</div><div class="l">Classes livrées</div></div>
   </div>
   <p style="margin-top:14px">
     <span class="elem" style="background:var(--normal)"></span>Normal&nbsp;&nbsp;
@@ -111,12 +115,12 @@
     <div class="title">Fondations <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
     <div class="desc">Types partagés (éléments, dégâts, profils élémentaires) · composant de vie universel (faiblesse/résistance, défense %, bouclier) · debug centralisé coloré par élément.</div>
   </div></div>
-  <div class="step"><div class="num">2</div><div class="body">
-    <div class="title">Héroïne top-down <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
-    <div class="desc">Personnage libre (twin-stick), contrôleur 2 schémas (souris / manette), caméra Zelda-like — en capsule de debug.</div>
+  <div class="step done"><div class="num">2</div><div class="body">
+    <div class="title">Héroïne top-down <span class="badge b-ok">TERMINÉ · TESTS VALIDÉS</span></div>
+    <div class="desc">Personnage libre twin-stick (vise d'un côté, marche de l'autre), contrôleur Enhanced Input 2 schémas (clavier ZQSD/WASD + souris, manette), caméra Zelda-like, AnimInstance avec variables d'état, GameMode de test.</div>
   </div></div>
   <div class="step"><div class="num">3</div><div class="body">
-    <div class="title">Armes debug-first <span class="badge b-todo">À VENIR</span></div>
+    <div class="title">Armes debug-first <span class="badge b-now">PROCHAINE ÉTAPE</span></div>
     <div class="desc">DA_Weapon · WeaponComponent · projectiles à comportements (perçant, rebond, fragments, autoguidé, zone) · pool.</div>
   </div></div>
   <div class="step"><div class="num">4</div><div class="body">
@@ -186,6 +190,62 @@
   </table>
 </div>
 
+<h2 id="etape2">Étape 2 — Ce qui est implémenté <span class="badge b-ok">✓</span></h2>
+
+<details open>
+  <summary><span class="mono">AWDHeroCharacter</span> — l'héroïne top-down <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <p><strong>Twin-stick</strong> : elle se déplace librement ET vise indépendamment — elle peut courir vers le mur en tirant derrière elle. La rotation suit la visée (interpolation douce), jamais le déplacement. Caméra <strong>Zelda-like</strong> embarquée (vue plongeante à −62°, distance et angle réglables dans les Détails). En attendant son mesh, une <strong>flèche de debug</strong> montre où elle regarde.</p>
+    <p class="muted">Elle ne peut pas mourir (seul le mur compte). Vitesse 600 uu/s. Expose l'état d'animation : <code>GetSpeed</code>, <code>IsMoving</code>, <code>GetMoveDirectionAngle</code> (angle vélocité/regard pour le blendspace de strafe).</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">AWDHeroController</span> — deux schémas de contrôle <span class="badge b-ok">livré</span></summary>
+  <div class="inner">
+    <table>
+      <tr><th>Action</th><th>Clavier + souris</th><th>Manette (cible principale)</th></tr>
+      <tr><td>Se déplacer</td><td>ZQSD <em>et</em> WASD (les deux mappés)</td><td>stick gauche</td></tr>
+      <tr><td>Viser</td><td>la souris (le perso regarde le curseur)</td><td>stick droit (prioritaire dès qu'il est poussé)</td></tr>
+      <tr><td>Tirer (placeholder)</td><td>clic gauche</td><td>gâchette droite</td></tr>
+      <tr><td>Changer d'arme (placeholder)</td><td>molette / Tab</td><td>RB</td></tr>
+    </table>
+    <p class="muted">Enhanced Input construit en C++ au runtime — zéro asset nécessaire (le remapping de l'étape 6 reprendra ces actions). La visée souris fonctionne par intersection du curseur avec le plan du sol : pas besoin de collision.</p>
+  </div>
+</details>
+
+<details open>
+  <summary><span class="mono">UWDHeroAnimInstance</span> + <span class="mono">AWDSandboxGameMode</span> <span class="badge b-ok">livrés</span></summary>
+  <div class="inner">
+    <p><strong>AnimInstance</strong> : la future AnimBP de l'héroïne héritera de cette classe — <code>Speed</code>, <code>bIsMoving</code>, <code>MoveDirection</code> (et <code>bIsFiring</code> dès l'étape 3) sont déjà exposés à l'AnimGraph, aucune logique à câbler en Blueprint.</p>
+    <p><strong>GameMode sandbox</strong> : spawne l'héroïne + son contrôleur dans n'importe quelle map de test.</p>
+  </div>
+</details>
+
+<div class="card">
+  <strong>Fichiers créés</strong>
+  <table>
+    <tr><td><code>Source/WallDefense/Player/WDHeroMath.h</code></td><td class="muted">maths pures input→monde (testées unitairement)</td></tr>
+    <tr><td><code>Source/WallDefense/Player/WDHeroCharacter.h/.cpp</code></td><td class="muted">héroïne + caméra</td></tr>
+    <tr><td><code>Source/WallDefense/Player/WDHeroController.h/.cpp</code></td><td class="muted">twin-stick, 2 schémas</td></tr>
+    <tr><td><code>Source/WallDefense/Player/WDHeroAnimInstance.h/.cpp</code></td><td class="muted">état d'anim exposé</td></tr>
+    <tr><td><code>Source/WallDefense/GameModes/WDSandboxGameMode.h/.cpp</code></td><td class="muted">GameMode de test</td></tr>
+    <tr><td><code>Source/WallDefense/Tests/WDHeroMathTests.cpp</code></td><td class="muted">4 tests automatisés</td></tr>
+  </table>
+</div>
+
+<h2 id="tester2">Comment tester dans Unreal — Étape 2</h2>
+
+<div class="card">
+  <h3>Piloter l'héroïne (5 minutes)</h3>
+  <p>1. <strong>File → New Level → Basic</strong> (il y a déjà un sol). Sauvegarde-la (ex. <code>L_Sandbox</code>).<br>
+     2. <strong>Window → World Settings → GameMode Override</strong> → <code>WDSandboxGameMode</code>.<br>
+     3. <strong>Play</strong> (PIE). Tu incarnes une capsule avec une flèche de debug qui montre son regard.<br><br>
+     ✅ <strong>À vérifier au clavier/souris</strong> : ZQSD (ou WASD) déplace ; la capsule <em>regarde le curseur</em> en permanence — déplace-toi dans un sens en visant l'autre ; clic gauche = tir de debug vers la visée ; molette/Tab = cycle des 7 éléments (le nom + un cercle coloré apparaissent — c'est la palette officielle).<br><br>
+     ✅ <strong>À la manette</strong> : stick gauche déplace, stick droit vise (il prend la priorité sur la souris dès qu'il est poussé), gâchette droite tire, RB change d'élément.<br><br>
+     ✅ <strong>Caméra</strong> : vue plongeante fixe qui suit le personnage sans tourner. Angle/distance réglables sur le pawn (sélectionne-le en PIE : <code>CameraPitch</code>, <code>CameraDistance</code>).</p>
+</div>
+
 <h2 id="tester">Comment tester dans Unreal — Étape 1</h2>
 
 <div class="card">
@@ -227,6 +287,10 @@
     <tr><td class="mono">Health.HealClampsAtMax</td><td>Soin plafonné aux PV max</td><td>✅</td></tr>
     <tr><td class="mono">Health.ResetToFull</td><td>Reset après mort : vivant, PV pleins, bouclier effacé (début de stage)</td><td>✅</td></tr>
     <tr><td class="mono">Health.FullFormulaStack</td><td>Faiblesse + défense 75 combinées : 10 × 1,75 × 0,571 = 10</td><td>✅</td></tr>
+    <tr><td class="mono">Hero.InputToWorldDirection</td><td>Stick/clavier → direction monde : haut = +X, droite = +Y, diagonales normalisées, zéro stable</td><td>✅</td></tr>
+    <tr><td class="mono">Hero.DirectionToYaw</td><td>Direction → angle de rotation (0/90/−90/180)</td><td>✅</td></tr>
+    <tr><td class="mono">Hero.MoveDirectionAngle</td><td>Angle vélocité/regard pour le strafe : avant 0, droite 90, arrière ±180 ; le Z (sauts) est ignoré</td><td>✅</td></tr>
+    <tr><td class="mono">Hero.AimStickRoundTrip</td><td>Stick haut-droite → visée à 45° à l'écran (chaîne complète input → yaw)</td><td>✅</td></tr>
   </table>
   <p class="muted">Exécution headless (sans ouvrir l'éditeur) :</p>
   <pre>& "C:\Unreal Engine\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
@@ -271,14 +335,15 @@
   <summary>Gameplay (héroïne, mur, monstres, projectiles)</summary>
   <div class="inner"><table>
     <tr><th>Classe</th><th>Rôle</th><th>Étape</th></tr>
-    <tr><td class="mono">AWDHeroCharacter + Controller</td><td>héroïne top-down twin-stick, 2 schémas d'input</td><td><span class="badge b-todo">2</span></td></tr>
+    <tr><td class="mono">AWDHeroCharacter + Controller</td><td>héroïne top-down twin-stick, 2 schémas d'input, caméra Zelda-like</td><td><span class="badge b-ok">2 ✓</span></td></tr>
     <tr><td class="mono">UWDWeaponInventory / WeaponComponent</td><td>7 armes, switch, tir au socket Muzzle</td><td><span class="badge b-todo">3</span></td></tr>
     <tr><td class="mono">AWDProjectile + Pool</td><td>projectiles à comportements (perçant, rebond, fragments…)</td><td><span class="badge b-todo">3</span></td></tr>
     <tr><td class="mono">AWDMonster + patterns + auras</td><td>monstres data-driven, supports (heal/bouclier/accél…)</td><td><span class="badge b-todo">4</span></td></tr>
     <tr><td class="mono">UWDStageDirector</td><td>vagues, chrono inter-vague sans attente, kill streak</td><td><span class="badge b-todo">4</span></td></tr>
     <tr><td class="mono">AWDWall + skills</td><td>le mur : PV global, skills conditionnels</td><td><span class="badge b-todo">5</span></td></tr>
     <tr><td class="mono">AWDLootPickup + Magnet</td><td>drops qui expirent, aimant évolutif</td><td><span class="badge b-todo">6</span></td></tr>
-    <tr><td class="mono">UWDAnimInstanceBase (+Hero/Monster)</td><td>état d'anim exposé aux AnimBP (bIsMoving, bIsDead…)</td><td><span class="badge b-todo">2/4</span></td></tr>
+    <tr><td class="mono">UWDHeroAnimInstance</td><td>état d'anim de l'héroïne exposé à l'AnimBP (Speed, bIsMoving, MoveDirection)</td><td><span class="badge b-ok">2 ✓</span></td></tr>
+    <tr><td class="mono">UWDMonsterAnimInstance</td><td>état d'anim des monstres (bIsDead, bIsAttacking, états…)</td><td><span class="badge b-todo">4</span></td></tr>
   </table></div>
 </details>
 

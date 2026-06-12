@@ -19,8 +19,10 @@ Pierre is the only developer on the project (solo since June 2026). All Markdown
 - Pierre gives feedback by writing `## BAK:` comments inside documents — read them, integrate them, then remove them.
 
 ## Implementation status (update this section as steps complete)
-- **Step 1/7 DONE** (foundations): `Core/WDTypes.h` (EWDElement, FWDDamageEvent, FWDElementalProfile, element colors), `Combat/WDHealthComponent` (elemental weakness ×1.75 / resistance ×0.5, percent defense, shield layer, events), `Core/WDDebugSubsystem` (element-colored debug draw, CVar `wd.Debug.Draw`). 10 automated tests passing (`WallDefense.Health.*`).
-- **Next: Step 2** — top-down hero (twin-stick character + controller with 2 input schemes, Zelda-like camera, debug capsule).
+- **Step 1/7 DONE** (foundations): `Core/WDTypes.h` (EWDElement, FWDDamageEvent, FWDElementalProfile, element colors), `Combat/WDHealthComponent` (elemental weakness ×1.75 / resistance ×0.5, percent defense, shield layer, events), `Core/WDDebugSubsystem` (element-colored debug draw, CVar `wd.Debug.Draw`).
+- **Step 2/7 DONE** (top-down hero): `Player/WDHeroMath.h` (input→world math, screen up = world +X), `Player/WDHeroCharacter` (twin-stick: aim-driven rotation, Zelda-like camera onboard, anim state getters), `Player/WDHeroController` (Enhanced Input built at runtime in C++ — WASD+ZQSD/mouse aim via ground-plane intersection, gamepad sticks; placeholder fire/switch draw debug), `Player/WDHeroAnimInstance`, `GameModes/WDSandboxGameMode` (test: GameMode Override in any map with a floor).
+- 14 automated tests passing (`WallDefense.Health.*` + `WallDefense.Hero.*`).
+- **Next: Step 3** — weapons debug-first: `DA_Weapon`, `WeaponComponent`, projectiles with data-driven behaviors (pierce, bounce, fragments, homing, area) + pool.
 - Legacy lane-based code (`LaneGrid`, `LanePlayerCharacter`, old `HealthComponent`, `BaseMonster`) is still in place; it gets replaced/migrated as steps 2–4 land.
 
 ## Code conventions
