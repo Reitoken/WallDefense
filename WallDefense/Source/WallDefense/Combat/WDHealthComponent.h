@@ -30,6 +30,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WD|Health")
 	float ApplyWDDamage(const FWDDamageEvent& DamageEvent);
 
+	/** Convenience: damages any actor carrying a WDHealthComponent. Returns damage dealt (0 if none/dead). */
+	UFUNCTION(BlueprintCallable, Category = "WD|Health")
+	static float DamageActor(AActor* Target, const FWDDamageEvent& DamageEvent);
+
 	UFUNCTION(BlueprintCallable, Category = "WD|Health")
 	void Heal(float Amount);
 

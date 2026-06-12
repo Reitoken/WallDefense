@@ -7,6 +7,9 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UStaticMeshComponent;
+class UWDWeaponInventoryComponent;
+class UWDWeaponComponent;
+class UWDWeaponData;
 
 /**
  * The top-down heroine (free movement, Zelda-like camera).
@@ -43,6 +46,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "WD|Hero|Animation")
 	float GetMoveDirectionAngle() const;
 
+	UFUNCTION(BlueprintPure, Category = "WD|Hero")
+	UWDWeaponInventoryComponent* GetWeaponInventory() const { return WeaponInventory; }
+
+	UFUNCTION(BlueprintPure, Category = "WD|Hero")
+	UWDWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "WD|Hero|Animation")
+	bool IsFiring() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -59,6 +71,16 @@ protected:
 	/** Debug nose: shows the facing at a glance from above. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
 	TObjectPtr<UStaticMeshComponent> DebugNose;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
+	TObjectPtr<UWDWeaponInventoryComponent> WeaponInventory;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WD|Hero")
+	TObjectPtr<UWDWeaponComponent> WeaponComponent;
+
+	/** Owner-level wiring (ArchitectureTechnique §10): inventory switch -> weapon component. */
+	UFUNCTION()
+	void HandleWeaponSwitched(UWDWeaponData* Weapon, int32 Index);
 
 	/** Higher = snappier turn toward the aim direction. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WD|Hero", meta = (ClampMin = "0.0"))

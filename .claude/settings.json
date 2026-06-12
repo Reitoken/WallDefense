@@ -7,7 +7,9 @@
       "PowerShell(Get-Process UnrealEditor -ErrorAction SilentlyContinue)",
       "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Test Completed|TEST COMPLETE\" | ForEach-Object { $_.Line.Trim\\(\\) -replace 'LogAutomationController: Display: ','' })",
       "Bash(tasklist //FI \"IMAGENAME eq UnrealEditor.exe\")",
-      "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Result=\\\\{Fail|TEST COMPLETE\" | ForEach-Object { $_.Line.Trim\\(\\) })"
+      "PowerShell(& \"C:\\\\Unreal Engine\\\\UE_5.7\\\\Engine\\\\Binaries\\\\Win64\\\\UnrealEditor-Cmd.exe\" \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\WallDefense.uproject\" -ExecCmds=\"Automation RunTests WallDefense; Quit\" -nullrhi -unattended -nopause -nosplash -stdout -NoLogTimes 2>$null | Select-String -Pattern \"Result=\\\\{Fail|TEST COMPLETE\" | ForEach-Object { $_.Line.Trim\\(\\) })",
+      "Read(//c/Unreal Engine/UE_5.7/Engine/Content/BasicShapes/**)",
+      "PowerShell($f = \"c:\\\\GitHub\\\\WallDefense\\\\WallDefense\\\\Source\\\\WallDefense\\\\Weapons\\\\WDProjectile.cpp\"; \\(Get-Content $f -Raw -Encoding utf8\\) -replace 'ObjectPtrDecay\\\\\\(HitActors\\\\\\)', 'HitActors' | Set-Content $f -Encoding utf8)"
     ]
   }
 }

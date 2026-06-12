@@ -1,6 +1,9 @@
 #include "Player/WDHeroCharacter.h"
 #include "Player/WDHeroMath.h"
 #include "Core/WDDebugSubsystem.h"
+#include "Weapons/WDWeaponInventoryComponent.h"
+#include "Weapons/WDWeaponComponent.h"
+#include "Weapons/WDWeaponData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -33,20 +36,24 @@ AWDHeroCharacter::AWDHeroCharacter()
 
 	// Visible debug body — the collision capsule never renders in game.
 	// Engine basic shapes: nothing to create on the content side (debug-first).
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Capsule.Capsule"));
+	// Note: UE 5.7 has no Capsule basic shape — Cylinder it is.
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeMesh(TEXT("/Engine/BasicShapes/Cone.Cone"));
 
 	DebugBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugBody"));
 	DebugBody->SetupAttachment(RootComponent);
 	DebugBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	if (CapsuleMesh.Succeeded())
+	if (CylinderMesh.Succeeded())
 	{
-		DebugBody->SetStaticMesh(CapsuleMesh.Object);
-		// Engine capsule: radius 50, height 100 -> match the collision capsule (34 x 176).
+		DebugBody->SetStaticMesh(CylinderMesh.Object);
+		// Engine cylinder: radius 50, height 100 -> match the collision capsule (34 x 176).
 		const float Radius = GetCapsuleComponent()->GetScaledCapsuleRadius();
 		const float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 		DebugBody->SetRelativeScale3D(FVector(Radius / 50.f, Radius / 50.f, HalfHeight / 50.f));
 	}
+
+	WeaponInventory = CreateDefaultSubobject<UWDWeaponInventoryComponent>(TEXT("WeaponInventory"));
+	WeaponComponent = CreateDefaultSubobject<UWDWeaponComponent>(TEXT("WeaponComponent"));
 
 	DebugNose = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugNose"));
 	DebugNose->SetupAttachment(RootComponent);
@@ -63,10 +70,23 @@ AWDHeroCharacter::AWDHeroCharacter()
 
 void AWDHeroCharacter::BeginPlay()
 {
+	// Wire BEFORE Super: the inventory broadcasts its first weapon during its BeginPlay.
+	WeaponInventory->OnWeaponSwitched.AddDynamic(this, &AWDHeroCharacter::HandleWeaponSwitched);
+
 	Super::BeginPlay();
 	DesiredYaw = GetActorRotation().Yaw;
 	CameraArm->TargetArmLength = CameraDistance;
 	CameraArm->SetRelativeRotation(FRotator(CameraPitch, 0.f, 0.f));
+}
+
+void AWDHeroCharacter::HandleWeaponSwitched(UWDWeaponData* Weapon, int32 Index)
+{
+	WeaponComponent->SetWeapon(Weapon);
+}
+
+bool AWDHeroCharacter::IsFiring() const
+{
+	return WeaponComponent && WeaponComponent->IsFiring();
 }
 
 void AWDHeroCharacter::Tick(float DeltaSeconds)
@@ -78,11 +98,13 @@ void AWDHeroCharacter::Tick(float DeltaSeconds)
 	Rotation.Yaw = FMath::FInterpTo(Rotation.Yaw, DesiredYaw, DeltaSeconds, FacingInterpSpeed);
 	SetActorRotation(Rotation);
 
-	// Debug-first: show the aim while there is no mesh (capsule stage).
+	// Debug-first: aim line in the ACTIVE ELEMENT color (reads the switch at a glance).
 	if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
 	{
+		const UWDWeaponData* Active = WeaponInventory->GetActiveWeapon();
+		const EWDElement Element = Active ? Active->Element : EWDElement::Normal;
 		const FVector Start = GetActorLocation();
-		Debug->DrawLine(Start, Start + GetActorForwardVector() * 200.f, EWDElement::Normal, 0.f, 3.f);
+		Debug->DrawLine(Start, Start + GetActorForwardVector() * 200.f, Element, 0.f, 3.f);
 	}
 }
 

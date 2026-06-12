@@ -32,7 +32,8 @@ protected:
 
 	void OnMove(const FInputActionValue& Value);
 	void OnAimStick(const FInputActionValue& Value);
-	void OnFire(const FInputActionValue& Value);
+	void OnFireStarted(const FInputActionValue& Value);
+	void OnFireCompleted(const FInputActionValue& Value);
 	void OnNextWeapon(const FInputActionValue& Value);
 
 	AWDHeroCharacter* GetHero() const;
@@ -49,7 +50,4 @@ protected:
 private:
 	/** Last right-stick aim this frame; zero means "use the mouse". */
 	FVector2D StickAim = FVector2D::ZeroVector;
-
-	/** Step 2 placeholder: cycles elements to preview colors; becomes the weapon switch at step 3. */
-	int32 PreviewElementIndex = 0;
 };

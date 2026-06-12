@@ -17,6 +17,16 @@ void UWDHealthComponent::BeginPlay()
 	}
 }
 
+float UWDHealthComponent::DamageActor(AActor* Target, const FWDDamageEvent& DamageEvent)
+{
+	if (!IsValid(Target))
+	{
+		return 0.f;
+	}
+	UWDHealthComponent* Health = Target->FindComponentByClass<UWDHealthComponent>();
+	return Health ? Health->ApplyWDDamage(DamageEvent) : 0.f;
+}
+
 float UWDHealthComponent::ApplyWDDamage(const FWDDamageEvent& DamageEvent)
 {
 	if (bDead || DamageEvent.Amount <= 0.f)

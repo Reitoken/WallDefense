@@ -2,6 +2,9 @@
 #include "Player/WDHeroCharacter.h"
 #include "Player/WDHeroMath.h"
 #include "Core/WDDebugSubsystem.h"
+#include "Weapons/WDWeaponInventoryComponent.h"
+#include "Weapons/WDWeaponComponent.h"
+#include "Weapons/WDWeaponData.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
@@ -39,7 +42,8 @@ void AWDHeroController::SetupInputComponent()
 	Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AWDHeroController::OnMove);
 	Input->BindAction(AimAction, ETriggerEvent::Triggered, this, &AWDHeroController::OnAimStick);
 	Input->BindAction(AimAction, ETriggerEvent::Completed, this, &AWDHeroController::OnAimStick);
-	Input->BindAction(FireAction, ETriggerEvent::Started, this, &AWDHeroController::OnFire);
+	Input->BindAction(FireAction, ETriggerEvent::Started, this, &AWDHeroController::OnFireStarted);
+	Input->BindAction(FireAction, ETriggerEvent::Completed, this, &AWDHeroController::OnFireCompleted);
 	Input->BindAction(NextWeaponAction, ETriggerEvent::Started, this, &AWDHeroController::OnNextWeapon);
 }
 
@@ -107,10 +111,17 @@ void AWDHeroController::PlayerTick(float DeltaTime)
 		return;
 	}
 
+	UWDWeaponComponent* WeaponComponent = Hero->GetWeaponComponent();
+
 	if (!StickAim.IsNearlyZero(0.2f))
 	{
 		// Gamepad aim wins whenever the right stick is pushed.
-		Hero->SetAimDirection(WDHeroMath::InputToWorldDirection(StickAim));
+		const FVector AimDirection = WDHeroMath::InputToWorldDirection(StickAim);
+		Hero->SetAimDirection(AimDirection);
+		if (WeaponComponent)
+		{
+			WeaponComponent->SetAimTarget(Hero->GetActorLocation() + AimDirection * 600.f);
+		}
 	}
 	else
 	{
@@ -124,6 +135,10 @@ void AWDHeroController::PlayerTick(float DeltaTime)
 			{
 				const FVector Target = Origin + Direction * T;
 				Hero->SetAimDirection(Target - HeroLocation);
+				if (WeaponComponent)
+				{
+					WeaponComponent->SetAimTarget(Target); // celestial strikes land on the cursor
+				}
 			}
 		}
 	}
@@ -142,36 +157,38 @@ void AWDHeroController::OnAimStick(const FInputActionValue& Value)
 	StickAim = Value.Get<FVector2D>();
 }
 
-void AWDHeroController::OnFire(const FInputActionValue& Value)
+void AWDHeroController::OnFireStarted(const FInputActionValue& Value)
 {
-	// Step 2 placeholder: a debug shot in the current preview element.
-	// Validates aiming end-to-end; real weapons arrive at step 3.
-	AWDHeroCharacter* Hero = GetHero();
-	if (!Hero)
+	if (AWDHeroCharacter* Hero = GetHero())
 	{
-		return;
+		Hero->GetWeaponComponent()->StartFire();
 	}
-	if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
+}
+
+void AWDHeroController::OnFireCompleted(const FInputActionValue& Value)
+{
+	if (AWDHeroCharacter* Hero = GetHero())
 	{
-		const EWDElement Element = static_cast<EWDElement>(PreviewElementIndex);
-		const FVector Start = Hero->GetActorLocation();
-		const FVector End = Start + Hero->GetActorForwardVector() * 1200.f;
-		Debug->DrawLine(Start, End, Element, 0.5f, 3.f);
-		Debug->DrawImpact(End, Element, 0.5f);
+		Hero->GetWeaponComponent()->StopFire();
 	}
 }
 
 void AWDHeroController::OnNextWeapon(const FInputActionValue& Value)
 {
-	PreviewElementIndex = (PreviewElementIndex + 1) % 7;
-	if (AWDHeroCharacter* Hero = GetHero())
+	AWDHeroCharacter* Hero = GetHero();
+	if (!Hero)
 	{
-		if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
+		return;
+	}
+	UWDWeaponInventoryComponent* Inventory = Hero->GetWeaponInventory();
+	Inventory->NextWeapon();
+
+	if (UWDDebugSubsystem* Debug = GetWorld()->GetSubsystem<UWDDebugSubsystem>())
+	{
+		if (const UWDWeaponData* Weapon = Inventory->GetActiveWeapon())
 		{
-			const EWDElement Element = static_cast<EWDElement>(PreviewElementIndex);
-			Debug->DrawText(Hero->GetActorLocation() + FVector(0, 0, 120.f),
-				StaticEnum<EWDElement>()->GetNameStringByValue(PreviewElementIndex), Element, 1.f);
-			Debug->DrawGroundCircle(Hero->GetActorLocation(), 150.f, Element, 1.f);
+			Debug->DrawText(Hero->GetActorLocation() + FVector(0, 0, 140.f), Weapon->DisplayName.ToString(), Weapon->Element, 1.f);
+			Debug->DrawGroundCircle(Hero->GetActorLocation(), 150.f, Weapon->Element, 1.f);
 		}
 	}
 }
