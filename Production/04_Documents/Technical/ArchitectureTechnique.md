@@ -1,6 +1,6 @@
 # Architecture technique — Wall Defense
 
-> v1.2 — 12 juin 2026 (ajouts : préchargement/écran de chargement, options, internationalisation, **hit response/game feel**). Document de référence AVANT d'écrire le code.
+> v1.3 — 12 juin 2026 (ajouts : préchargement/écran de chargement, options, internationalisation, hit response/game feel, **conventions de sockets et de paramétrisation §11**). Document de référence AVANT d'écrire le code.
 > Tout est **C++** ; les Blueprints/assets ne font que du visuel et de la donnée. Préfixe de classes : `WD`.
 
 ---
@@ -52,7 +52,7 @@
 
 | Asset | Description simple | Consommé par |
 |---|---|---|
-| **`UWDWeaponData`** (DA_Weapon_×7) | Une arme : élément, stats de base, courbe 1–100, liste des **paliers** (niveau → comportements `FWDProjectileBehavior`), **Spéciale** (effet, scaling, cooldown, **vidéo** `TSoftObjectPtr<UMediaSource>`), `FWDEffectCue` par effet ET sous-effet, tenue associée (`UWDOutfitData`), coûts par tier | WeaponComponent, SpecialComponent, Progression (coûts), Encyclopédie, Outfit |
+| **`UWDWeaponData`** (DA_Weapon_×7) | Une arme : élément, stats de base, courbe 1–100, liste des **paliers** (niveau → comportements `FWDProjectileBehavior`), **Spéciale** (effet, scaling, cooldown, **vidéo** `TSoftObjectPtr<UMediaSource>`), `FWDEffectCue` par effet ET sous-effet, tenue associée (`UWDOutfitData`), coûts par tier, **mesh de l'arme** (static OU skeletal, au choix par arme) + **nom du socket de bouche** (`Muzzle` par défaut) + **offset de secours** si le socket n'existe pas (§11) | WeaponComponent, SpecialComponent, Progression (coûts), Encyclopédie, Outfit |
 | **`UWDMonsterData`** (DA_Monster_×36) | Une fiche du bestiaire : multiplicateurs (PV/déf/dégâts mur), vitesse, pattern, `FWDElementalProfile`, bouclier, skill support (type d'aura + params), table de drops | Monster (à l'apparition), StageDirector, Encyclopédie |
 | **`UWDStageData`** (DA_Stage_×31) | Un stage : zone, **liste des vagues** (monstres + quantités + timing), récompenses fixes par étoiles, configuration par mode | StageDirector, GameMode, sélection de stage |
 | **`UWDWallData`** | Niveaux du mur : PV/défense par niveau, **skills** (condition + effet + niveau de déblocage), coûts | Wall, Progression, menu d'amélioration |
@@ -81,7 +81,7 @@
 | **`AWDHeroCharacter`** | Le pawn top-down : se déplace librement, ne meurt pas. Ne fait QUE bouger — tout le reste est dans ses composants. | WeaponInventory, Special, Magnet, Outfit |
 | **`AWDHeroController`** | Traduit les inputs (Enhanced Input, 2 schémas : souris+clavier / **manette twin-stick privilégiée**) en appels : déplacer, viser, tirer, switcher, Spéciale. | — |
 | **`UWDWeaponInventoryComponent`** | Les 7 emplacements d'armes, l'arme active, le **switch** (suivant/direct). | → `OnWeaponSwitched(ancienne, nouvelle)` |
-| **`UWDWeaponComponent`** | Tire l'arme active : lit son `DA_Weapon` (cadence, type de tir, comportements du niveau actuel), demande les projectiles au pool, applique le cooldown (laser sombre). | → `OnFired`, `OnCooldownChanged` |
+| **`UWDWeaponComponent`** | Tire l'arme active : lit son `DA_Weapon` (cadence, type de tir, comportements du niveau actuel), demande les projectiles au pool, applique le cooldown (laser sombre). Gère le **mesh de l'arme** (attaché au socket `GripPoint` du personnage) et **spawn les tirs à la transform du socket `Muzzle`** de ce mesh — position ET direction (§11). | → `OnFired`, `OnCooldownChanged` |
 | **`UWDSpecialAbilityComponent`** | La Spéciale : cooldown, scaling par niveau, déclenche l'effet (mêmes comportements projectiles) et demande la vidéo à l'UISubsystem via événement. | → `OnSpecialCast`, `OnSpecialCooldownChanged` |
 | **`UWDMagnetComponent`** | Attire les `AWDLootPickup` dans son rayon (stat du niveau du perso). | → `OnLootCollected(type, quantité)` |
 | **`UWDOutfitComponent`** | Applique la tenue (`DA_Outfit`) liée à l'arme active ; écoute `OnWeaponSwitched` (câblé par le Character). | — |
@@ -175,7 +175,40 @@ Le jeu est **localisé dès la conception** (les textes seront écrits/traduits 
 - Chaque composant doit fonctionner **dans une map de test vide** avec le DebugSubsystem (critère d'indépendance).
 - Tout asset = `TSoftObjectPtr` dans un DataAsset. Référence absente → rendu debug, jamais de crash.
 
-## 11. Ordre d'implémentation proposé
+## 11. Conventions de paramétrisation concrètes ✅ (v1.3)
+
+> Les détails « bêtes » qui, conventionnés au jour 1, suppriment tout besoin de Blueprint logique et tout bricolage futur. **Règle commune : tout point nommé a un fallback — un socket absent ne crashe jamais, il dégrade vers un offset par défaut (debug-first).**
+
+### 11.1 Sockets nommés (la convention)
+Les **sockets existent sur les Static Mesh comme sur les Skeletal Mesh** (panneau Socket Manager de l'éditeur) — la convention couvre donc les deux cas sans code différent :
+
+| Socket | Sur quoi | Sert à |
+|---|---|---|
+| `GripPoint` | mesh du **personnage** (et de CHAQUE tenue/skin) | attache du mesh de l'arme |
+| `Muzzle` | mesh de **chaque arme** (static ou skeletal) | **position + direction de spawn des tirs** (balles, cône du lance-flammes, départ du laser) |
+| `Muzzle_02`, `_03`… | armes multi-bouches 🔶 (tirs doubles/triples du fusil) | spawns alternés ou simultanés |
+| `Hit` | mesh de chaque **monstre** | où jouer l'impact (FX, chiffres de dégâts) — au centre de masse, pas aux pieds |
+| `Status` | mesh de chaque **monstre** | barre de vie, icône de faiblesse, états (gel, marque) — au-dessus de la tête |
+
+- Le `WeaponComponent` lit la **transform monde du socket `Muzzle`** à chaque tir : la position ET l'orientation du tir suivent l'arme (et l'animation s'il y en a une). Aucune logique Blueprint : poser le socket dans l'éditeur suffit.
+- **Fallback** : socket introuvable → `FTransform` d'offset défini dans le `DA_Weapon` (et un warning de validation, §11.4). Le jeu tourne donc **avant même d'avoir un mesh d'arme** — en debug, le tir part de l'offset.
+- **Contrat des skins** ✅ : toute tenue/skin DOIT exposer les mêmes noms de sockets (`GripPoint`…) — c'est LE contrat qui rend les skins interchangeables sans code.
+
+### 11.2 Points de spawn des vagues
+- Des marqueurs placés dans le niveau (`AWDSpawnPoint`, simple acteur à tag : `Fond`, `Flanc_G`, `Flanc_D`, `Terrier`…).
+- Le `DA_Stage` référence des **tags**, jamais des acteurs — le `StageDirector` résout au lancement. Déplacer/ajouter des spawns = éditer le niveau, sans toucher ni données ni code.
+
+### 11.3 Slots d'attaque du mur
+- Le mur expose une rangée de **slots d'attaque** (points générés le long de sa façade) ; chaque monstre au contact en réserve un → ils **se répartissent** au lieu de s'empiler sur un point. Libéré à la mort.
+
+### 11.4 Garde-fous données (gratuits, dès le jour 1)
+- **`IsDataValid()`** sur chaque DataAsset : socket manquant, ref nulle, palier en double, courbe vide → **warning à la sauvegarde dans l'éditeur**, pas un bug en jeu trois semaines plus tard.
+- **Courbes éditables** : toute progression chiffrée (dégâts/niveau, coûts, XP) = `UCurveFloat` dans le DataAsset, jamais une formule en dur — s'équilibre sans recompiler.
+- **GameplayTags pour les états** (`WD.Status.Gel`, `WD.Status.Marque`, `WD.Status.Brulure`…) plutôt que des booléens — extensible sans toucher aux structs, lisible dans l'éditeur.
+- **Canaux de collision dédiés** déclarés au départ : `WDProjectile`, `WDMonster`, `WDPickup` — évite les conflits de canaux impossibles à démêler en fin de projet.
+- **Paramètres Niagara conventionnés** : `User.ElementColor`, `User.Intensity`, `User.Scale` — mêmes noms dans les 3 systèmes maîtres, pilotés par le même code.
+
+## 12. Ordre d'implémentation proposé
 
 1. **Fondations** : types partagés (§3), `UWDHealthComponent` (élémentaire + bouclier), `UWDDebugSubsystem`. **Discipline `FText` + String Tables dès ce jour 1** (§9).
 2. **Héroïne top-down** : Character + Controller (2 schémas d'input) + caméra — en capsule de debug.
